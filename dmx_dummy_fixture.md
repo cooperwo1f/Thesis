@@ -11,7 +11,7 @@
 
   - Using DMXSerial library [link](https://github.com/mathertel/DMXSerial)
     - Receives all incoming DMX packets using interrupts and stores them in an internal array
-    - Individual channels are never written independantly eith DMX, instead all 512 channels of a "universe" are sent as a "frame"
+    - Individual channels are never written independently with DMX, instead all 512 channels of a "universe" are sent as a "frame"
     - Can have multiple universes
     - Every fixture in a universe receives data for every channel, then filters its specific channel
     - Because of this the channels are not required to be sent, instead the channels are 1+ the data array index
@@ -23,7 +23,7 @@
   - Once colors are set, need to call `void show(void);` in order to physically update LED colors
   - Incorporate intensity by multiplying intensity and color
     - Need to bitshift result in order to maintain 0-255 range
-    - `(intensity x color) >> 8`
+    - `(intensity * color) >> 8`
   - Need to map DMX addresses to LED
     - LED color stored as single value, index of data correlates to LED number
     - DMX data contains 4 discrete channels per LED
