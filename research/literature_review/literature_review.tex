@@ -1,0 +1,57 @@
+%% Document setup
+\input setup.tex
+
+\section{Introduction}
+The use of biosignals to generate music has been an area of exploration and innovation in the field of music technology.
+In this literature review, we will examine various approaches and technologies that have been developed in the pursuit of creating music from biosignals.
+We will begin by discussing early attempts at generating music from brainwaves
+and the challenges associated with using electroencephalogram (EEG) signals for live performances.
+Then, we will explore the use of other biosignals such as electrocardiogram (ECG), electromyography (EMG), galvanic skin response (GSR), and respiratory rate,
+which offer more predictability and are better suited to this project.
+Finally, we will investigate wireless solutions that enable the integration of biosensors into live performance devices and
+delve into the Music from Biosignals project; a project that aims to incorporate biosignals into a wireless platform for live performance.
+By reviewing these advancements, we hope to gain insights into the current state of the field and identify areas for further improvement and development.
+
+\section{Music from Brainwaves}
+The earliest attempt at creating music from brain activity is Alvin Lucier's `Music For Solo Performer'~\cite{Lucier:2010}~\cite{Straebel:2014}.
+While this system suffers from various technical issues such as high noise,
+the fundamental issue with trying to use electroencephalogram (EEG) to generate any kind of performance signal
+is that the output of an EEG is not at all rhythmic and contains a lot of randomness.
+Additionally, EEG signals have a high potential for artifacting~\cite{Mannan:2018} and require a large number of electrodes~\cite{Piorecky:2019}.
+These factors make EEG signals unsuitable for performance in a live setting and thus they will not be incorporated into the project.
+
+\section{Rhythmic Signal Approach}
+Other biosignals that could be used are electrocardiogram (ECG)~\cite{Afonso:1999}~\cite{Pan:1985},
+electromyography (EMG)~\cite{Tanaka:2002}~\cite{Young:2013}, galvanic skin response (GSR)~\cite{Kurniawan:2013}, and respiratory rate~\cite{Carlos:2011}.
+These signals have a degree of predictability~\cite{Tahiroğlu:2008} which makes them better suited for use in this project.
+There are a number of examples of these kinds of signals being incorporated into live performance settings such as
+the `Conductor's Jacket' by Nakra and Picard~\cite{Nakra:1998}, and `Stethophone' by Nerness and Fuloria~\cite{Nerness:2019}.
+However, these applications are still limited in their flexibility and use due to the wired nature of these devices.
+
+\section{Wireless Solutions}
+Wireless biosensor based performance devices do exist.
+Examples of such systems are Yamaha AI's `Transforms a Dancer into a Pianist'~\cite{Yamaha:2018}, and `Emovere' by Jaimovich~\cite{Jaimovich:2016}.
+There is not much documentation for these systems as they are still in use.
+But, from the small number of performance recordings of these systems it is clear that they are intended for experimental music.
+Therefore, further improvements on these devices can still be made in order to garner mass audience appeal through more conventional mainstream music generation.
+
+\section{The Music from Biosignals Project}
+The music from biosignals project has been ongoing for several years and attempts to integrate previously mentioned improvements.
+The project has developed an on-body device that acquires biosensors and allows them to be wirelessly transmitted to a PC for processing~\cite{Pierro:2019}~\cite{Tran:2022}.
+Additionally, software developed in MATLAB has been developed that processes the incoming signals and generates music in real-time~\cite{Chen:2016}~\cite{Nicholls:2019}.
+Previously, the hardware and software design of the system has been separate and the two parts are yet to be integrated.
+This leaves potential future work open in connecting both sides of the project to create one cohesive whole.
+
+\section{Conclusion}
+In conclusion, the exploration of generating music from biosignals has seen significant progress in recent years.
+While early attempts using brainwaves faced challenges due to their non-rhythmic and unpredictable nature,
+other biosignals such as ECG, EMG, GSR, and respiratory rate have shown promise in generating more predictable and rhythmic signals for use in live performance environments.
+The development of wireless solutions has facilitated the incorporation of biosensors into live performance settings,
+although further improvements are needed to enhance their mass audience appeal.
+The Music from Biosignals project aims to incorporate these changes to create a device that can be used in a variety of live performance settings.
+By continuing to explore and refine the use of biosignals in music generation, we can unlock new possibilities for artistic expression and interactive musical experiences.
+
+\nocite{*}
+\printbibliography{}
+
+\end{document}

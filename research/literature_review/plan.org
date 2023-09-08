@@ -1,0 +1,37 @@
+* Plan
+- [X] Go through old thesis's
+  - [X] Skim main review points
+  - [X] Grab best sources
+  - [X] Adam De Pierro
+  - [X] Isaac Nicholls
+- [X] Find "review" paper
+  - [X] Research Rabbit https://researchrabbitapp.com/home
+  - [X] Skim internal review of literature
+  - [X] Grab best sources
+- [X] Find regular papers and other sources
+  - [X] Combine sources into bibliography
+  - [X] Describe each source using OPTdesc to give context to why it is here
+- [-] Combine findings into rough outline
+  - [X] Group sources together by their relevance
+  - [-] Craft narrative around other findings/gaps
+  - [ ] Place in context of what we are doing
+  - [ ] Finish with explanation for why we are doing is important
+- [ ] Edit outline
+  - [ ] Focus on flow of outline so reader can follow what is happening easily
+  - [ ] Make everything make sense
+  - [ ] Finalise
+- [ ] Submit document
+  - [ ] Compile latex
+  - [ ] Verify formatting and fix any mistakes
+  - [ ] Submit on FLO
+
+* NOTES
+- ECG is heart
+- EMG is muscle
+- EEG is brain
+
+1 Previous
+2 ECG
+3 EMG
+4 EEG
+5 Applications
