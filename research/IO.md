@@ -48,3 +48,15 @@ Then continue to different pin on same port, verify that is also working.
 Finally, attempt changing port and test off pin of controller.
 Continuity test between pin and test point then check test point.
 If all correct we know 100% that the issue is with the scope.
+
+Might have something to do with the brownout detector that the ESP is constantly triggering.
+Think this is because the board requires more power to perform specific actions.
+For instance, I think the PIC debugging requires a bit of power because of the speed,
+and when it happens the ESP voltage drops low enough that it causes a brownout.
+My solution to this is to decrease the clock speed of the PIC since the 80MHz is much 
+faster than what we actually need the system to ever run at considering the requirements.
+
+Slowing the clock speed did not fully solve the issue and sometime the brownout detector
+is tripped again...
+Attempting to solve by plugging in a short USB into port of board.
+Also need to enable ICD 3 powering of board.
