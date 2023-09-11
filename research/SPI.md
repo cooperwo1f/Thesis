@@ -230,3 +230,38 @@ and I just do not have digital access to those pins.
 Or worst case the entire board has been designed so badly that the chip is having weird 
 power issues. Looking at the altium board files it definitly does not look great.
 At least there is a lot to include in ADC challenges for my results.
+
+
+Interesting change, if I make the `ADS129R_read()` function write a dummy byte of
+`0xFF` instead of `0x00`, the returned value is different... (it is now 0)
+After I reset the device it went back to 11000000...
+Pressing hardware reset causes DRDY pin to never go high again
+
+It seems like that behaviour existed whether the dummy value is 0xFF or 0x00
+Would be worth writing to the GPIO register since then I can 100% verify that the writing
+is correct since I can probe one of the test points with my scope.
+
+*ALSO IMPORTANT TO NOTE* the status word that I am expecting contains the following
+`1100 LOFF_STATP[7:0] LOFF_STATN[7:0] GPIO[7:4]`
+So maybe the received 11000000 could be the beginning of that status word but then I
+am not reading any more or something?
+
+GPIO register looks like `DATA[4:1] CONTROL[4:1]` with 0 being outputs and 1 being inputs
+for the control section
+
+So I am not able to write the register. I think at this stage what must be wrong is my
+register writing/reading.
+I think the actual write commands are working because if I write sleep, wakeup, start, stop,
+or reset the chip has the response I would expect it to have.
+I am not able to verify SDATAC or RDATAC because the data I am then reading is wrong.
+It also doesn't seem to stop it from giving me data if I send either of them.
+Maybe I should try RDATA and try to just do a simple read see if that makes any difference.
+
+Otherwise, I think the write byte works so I don't see why writing the read/write register 
+command then the address of the register is not working.
+
+It could also be that the SDATAC, RDATAC, and RDATA commands do not work for some reason 
+This would mean that all my attempts to read and write registers is futile because
+the chip is not going to respond to those commands as it boots into RDATAC mode.
+But even so the chip does not give any readings, just 192 (AKA 11000000) continously
+so I have no idea what that is supposed to mean.
