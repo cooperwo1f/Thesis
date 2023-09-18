@@ -265,3 +265,13 @@ This would mean that all my attempts to read and write registers is futile becau
 the chip is not going to respond to those commands as it boots into RDATAC mode.
 But even so the chip does not give any readings, just 192 (AKA 11000000) continously
 so I have no idea what that is supposed to mean.
+
+# FIGURED IT OUT LESSSGGGOOOOOOO
+Ok so the issue actually came from the CS line. The line was being driven active for each
+command but because the ADC had multi-byte commands it was expecting the CS line to stay 
+active for the entire duration. What was instead happening was the CS line was going inactive
+and causing the ADC to reset mid command which meant it was only responding to single byte 
+command hence why RESET, STANDBY, WAKEUP, etc were working correctly.
+
+Issue now is my driver has an issue because I'm reading all 0s for the ID but on the scope I
+can see the response is correct.
