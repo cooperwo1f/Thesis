@@ -275,3 +275,9 @@ command hence why RESET, STANDBY, WAKEUP, etc were working correctly.
 
 Issue now is my driver has an issue because I'm reading all 0s for the ID but on the scope I
 can see the response is correct.
+
+Issue was that the SPI buffer holds the previous transmitted value so need to clear it once
+before reading again to get actual value.
+
+Also need to make sure to use special `write_cmd()` function as it contains the neccessary
+chip select setting/resetting and it will not respond to commands otherwise.

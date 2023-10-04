@@ -45,7 +45,7 @@ headsepline, % Uncomment to get a line under the header
 
 %\usepackage[style=numeric]{biblatex} % Use the bibtex backend with the authoryear citation style (which resembles APA)
 \usepackage[backend=bibtex,style=numeric]{biblatex}
-\bibliography{thesis, literature_review/literature_review, project_plan/project_plan}
+\bibliography{thesis, chapters/literature_review/literature_review, chapters/project_plan/project_plan}
 \nocite{*}
 
 \usepackage[autostyle=true]{csquotes} % Required to generate language-dependent quotes in the bibliography
@@ -119,9 +119,9 @@ headsepline, % Uncomment to get a line under the header
 {\scshape\LARGE \univname\par}\vspace{1.5cm} % University name
 \textsc{\Large Honours Thesis}\\[0.5cm] % Thesis type
 
-\HRule \\[0.4cm] % Horizontal line
+\HRule\\[0.4cm] % Horizontal line
 {\huge \bfseries \ttitle\par}\vspace{0.4cm} % Thesis title
-\HRule \\[1.5cm] % Horizontal line
+\HRule\\[1.5cm] % Horizontal line
 
 \begin{minipage}[t]{0.4\textwidth}
 \begin{flushleft} \large
@@ -283,34 +283,46 @@ as well as Clearance Textiles Limited of Strood for providing the numerous bath 
 % Uncomment the lines as you write the chapters
 
 \chapter{Introduction}
-\include{introduction}
+\subsection{Background}
+What is the broad idea as a whole
+\include{chapters/introduction}
 
-\chapter{Literature Review}
-\include{literature_review/literature_review}
-
-\chapter{Project Plan}
-\include{project_plan/project_plan}
+\subsection{Literature Review}
+What already exists
+\include{chapters/literature_review/literature_review}
 
 \chapter{Methodology}
-\include{methodology}
+\subsection{Project Plan}
+Condensed Project Plan **OR** how the project was going to be achieved
+Should include here some metrics about what we want the system to be able to do
+\include{chapters/project_plan/project_plan}
+
+How the development proceeded (**MIGHT BE GOOD TO TIE THIS TOGETHER WITH PROJECT PLAN**)
+Good to find some references for different things we could habe done but didn't
+Would be good to show that it has been thought about rather than just made up abritarily on the fly
+\include{chapters/methodology}
 
 \chapter{Results}
-\include{results}
+What was achieved
+How was it validated
+\include{chapters/results}
 
 \chapter{Discussion}
-\include{discussion}
+How does it compare to what was originally planned
+\include{chapters/discussion}
 
 \chapter{Conclusion}
-\include{conclusion}
+\include{chapters/conclusion}
 
 \chapter{Future Work}
-\include{future_work}
+What can be done going forward
+\include{chapters/future_work}
 
 %----------------------------------------------------------------------------------------
 %	BIBLIOGRAPHY
 %----------------------------------------------------------------------------------------
 
-\printbibliography
+\printbibliography{}
 
 %---------------------------------------------------------------------------------------
 %	THESIS CONTENT - APPENDICES
