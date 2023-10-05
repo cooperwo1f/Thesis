@@ -1,0 +1,520 @@
+\chapter{On-Body Device}
+
+\section{Materials/Methods}
+%\lstinputlisting[language=C]{chapters/research/package_test/simple.c}
+
+The hardware I was given was in the process of being programmed.
+It consists of two microcontrollers, a PIC32 and a ESP32.
+The ESP32 had been programmed intermittently
+and the PIC32 had been successfully programmed once in order to enable the PIC32.
+I sucessfully programmed the ESP32 and enabled Over The Air (OTA) programming.
+I also implemented TCP/IP communication between the ESP32 and MATLAB.
+Craig Dawson shared code that allowed the PIC32 to be programmed.
+I had previously had issues programming it
+because the device used on the schematics is different
+to what has actually been put on the board.
+The code Craig has given me allows for simple programming,
+but some of the settings for the hardware have not been set correctly
+and the board cannot be put into debug mode.
+
+The process that has been followed to get the hardware working
+is to first program the ESP to allow it to be programmed consistently and conveniently.
+Then, communication with MATLAB was established using TCP/IP.
+This allows for data to be visuallised
+which can help with debugging the rest of the hardware.
+The PIC was then programmed to allow debugging,
+in order to do this the ICE/ICD Comm Channel Select needed to be changed to PGC1/PGD1,
+and DEBUG needed to be enabled.
+Finally, the PIC was programmed to communicate with the ESP
+and the whole chain was tested to verify communication between the PIC and MATLAB.
+
+Difficulty in that Arduino only provides code for SPI master mode.
+While ESP (programmed using Arduino) in this configuration makes more sense as the slave.
+Somewhat gotten around it using external libraries.
+Also difficulty in that anything that halts the ESP loop causes the OTA handle to stop.
+This means that any bugs that cause an infinite loop also make the ESP unprogrammable.
+
+Also working to keep all code general.
+So for instance can keep MATLAB code running
+for entire sequence of testing without needing to change anything.
+
+\subsection{ESP32}
+\subsubsection{Power}
+The brownout detector keeps tripping.
+The power distribution of the board is bad and there is voltage drops across traces
+Measuring 2.6V (3.3V required) when supplying the board from a single power supply
+(current limit is 2x what is required)
+
+Almost 2.7V when adding a secondary ground connection
+Closer to 2.8V with additional voltage connection
+2.9V with a 3rd voltage connection
+
+\subsubsection{Firewall}
+For the device to connect to the PC the firewall setting need to be correctly set.
+
+\subsubsection{Programming}
+Programming took ages and would fail often.
+
+\subsubsection{Transmission}
+Before I was filling a buffer from the incoming data and waiting until I received
+a newline before sending the entire buffer over TCP/IP all at once.
+Now I receive data and immediately send, provided client.connected()
+I use slave.available() to specify the length of data to be sent.
+
+This is better because it keeps the TCP/IP transmitter simple and also allows all
+of the packet metadata to be changeable independently of the ESP.
+
+Currently having a number of IO issues with the PIC32.
+Seems like no matter how I set the IO register direction, or how I set
+the PORT or LATCH bits, the IO pin never changes.
+I appear to be able to correctly read from the IO port although this
+hasn't been fully tested I am just able to see ports that should be
+inputs driven high.
+
+It may be worth setting those to outputs and see if I still read them
+as inputs because it seems like there is no pin assertion happening.
+
+Setting the TRIS bit and then writing the PORTx bit high is all that
+needs to be done.
+I can verify this because the ESP32 needs its enable pin to be pulled
+high and that is done sucesfully using `TRISBbits.TRISB2 = 0;' and
+`PORTBbits.RB2 = 1;'
+(testing this by setting `PORTBbits.RB2 = 0' resulted in the ESP
+shutting down)
+It just seems that no matter what I do, I cannot get signal on any of
+the test points. I'm trying to determine if it's an issue with the
+program or if the pinout is incorrect or if the routing was not done
+properly or some other issue like maybe my scope isn't referenced to
+the correct ground and the voltage that is present is actually not
+being measured.
+
+I'm thinking a reasonable way to proceed would be to continuity test
+a specific pin and 100\% verify the port and pin before checking it just
+with the multimeter to determine if voltage is present. Then, once that
+has be sorted move on to using the scope.
+What do we know:
+
+    - Pin outputs are set using TRISx and PORTx.
+    - The enable pin for the ESP is using one of these pins
+        - Although all that I've really been seeing
+        is the brownout detector being triggered
+        so maybe the ESP not working is unrelated to the
+        tampering I was doing with that pin...
+    - I am not able to see changes on any of the test points
+        - This is really strange because I am setting the entire port
+        worth of pins so I don't see how they could be getting missed.
+
+I think it's worth investigating the ESP enable pin a little closer.
+Maybe check voltage with a multimeter since it should be pretty easy.
+Then, if there is voltage attempt to remove and see what the ESP does
+(when properly powered using external supply as to not trip
+brownout detection).
+Then continue to different pin on same port, verify that is also working.
+Finally, attempt changing port and test off pin of controller.
+Continuity test between pin and test point then check test point.
+If all correct we know 100% that the issue is with the scope.
+
+Might have something to do with the brownout detector that the ESP is constantly triggering.
+Think this is because the board requires more power to perform specific actions.
+For instance, I think the PIC debugging requires a bit of power because of the speed,
+and when it happens the ESP voltage drops low enough that it causes a brownout.
+My solution to this is to decrease the clock speed of the PIC since the 80MHz is much
+faster than what we actually need the system to ever run at considering the requirements.
+
+Slowing the clock speed did not fully solve the issue and sometime the brownout detector
+is tripped again...
+Attempting to solve by plugging in a short USB into port of board.
+Also need to enable ICD 3 powering of board.
+
+\subsection{PIC32}
+\subsubsection{Packet}
+The packet is made up of a struct containing bit length defs
+for each of data types we will be sending.
+
+This struct is then treated as an array and encoded using base64
+(decision matrix pending).
+
+The encoded data is then sent via SPI to the ESP32 which acts
+as a SPI slave that simply receives any amount of data
+(less than 1024 bytes long) and transmits it once it receives
+the end of line character (`\\n').
+This character is hard coded but it also required to be present
+for the MATLAB code to function so it is consistent across both.
+
+The challenge now is that the data needs to be decoded in MATLAB.
+The following code can be used in a callback function to convert
+the received encoded data into an array of byte values.
+
+\begin{lstlisting}[language=MATLAB]
+base64 = readline(src);
+decoded = transpose(matlab.net.base64decode(char(base64)));
+\end{lstlisting}
+
+The decoded data can then be converted into the correct format
+using the following code
+
+\begin{lstlisting}[language=MATLAB]
+x = uint8(decoded(9:12));
+disp(typecast(x, 'uint32'))
+\end{lstlisting}
+
+The issue here is that there is a lot of hardcoded values
+in both the index of the data and the conversion format.
+One solution is to remove all bit length defs and send everything
+as 32-bit words. The tradeoff is that it is potentially quite wasteful.
+For instance, if we only needed to send 8-bits, we are essentially
+sending 24-bits of unnecessary data that will all be 0s.
+
+We ideally want to send a header at the start of transmission that
+contains all the information regarding size of data, etc.
+Then send a packet identifier so the system knows what data to expect.
+
+What would be good is to have all the identifiers be bitwise OR'd
+with each other so that the MATLAB code can just look at the identifier
+bit and can tell which pieces of data are present.
+This is better than the alternative of having seperate identifiers for
+every combination of data because then we can just define everything once.
+For example our header could look like the following:
+
+\begin{lstlisting}[language=C]
+IDENTIFIER = 0b10011000
+\end{lstlisting}
+
+which might correspond to ECG data, RESP data, and EMG data.
+The definitions for those data masks could be as follows:
+
+\begin{lstlisting}[language=C]
+ECG_MASK = 0b10000000
+RSP_MASK = 0b00010000
+EMG_MASK = 0b00001000
+\end{lstlisting}
+
+We could see from this that the identifier contains the corresponding
+masks and use it to extract the data.
+We could then say that the highest mask takes prescience.
+So, in this example the ECG data would come first since its mask's bit
+is the highest in the identifier.
+
+Then, all we need to define is that the mask bit corresponds to x amount
+of data. So that once we see a specific mask bit is set we can
+automatically align the data.
+
+I think its best to do this first manually by having all the masks
+and sizes set. Then, once that is working move to having a config packet
+that sets the masks and sizes dynamically.
+The goal is to keep the definitions in once place and propagate it
+through the system.
+
+Wrote a debug routine to print arbritary text to MATLAB via SPI/TCP.
+
+\begin{lstlisting}[language=C]
+void debug(const char *fmt, ...) {
+    va_list args;
+    char str[1024];
+
+    va_start(args, fmt);
+    vsprintf(str, fmt, args);
+    va_end(args);
+
+    write_packet(str, strlen(str));
+}
+\end{lstlisting}
+
+Then can receive in MATLAB using
+
+\begin{lstlisting}[language=MATLAB]
+y = char(decoded);
+disp(y)
+\end{lstlisting}
+
+\subsubsection{SPI}
+Currently running into issues where the SPI transmission does not work consistently.
+Tested it independently and got it presumably working quite well but for some reason
+now that it's been implemented into the rest of the chain it only works if there is
+significant delay.
+
+\begin{lstlisting}[language=C]
+for (size_t i = 0; i < output_length; i++) {
+    char str[128];
+    sprintf(str, "%c", encoded_data[i]);
+    ESP_write_array(str, strlen(str));
+}
+\end{lstlisting}
+
+This was originally the only way to get transmission to work.
+output length is the length of the base64 encoded string.
+I essentially had to write each character seperatly as if it were a string.
+This is a problem because the write function that I am using contains a significant delay.
+
+\begin{lstlisting}[language=C]
+void ESP_write_array(uint8_t *array, size_t len) {
+    for (size_t i = 0; i < len; i += 4) {
+        ESP_write_4byte(array[i], array[i+1], array[i+2], array[i+3]);
+    }
+
+    if (len % 4 == 1) { ESP_write_4byte(array[len-1], 0, 0, 0); }
+    if (len % 4 == 2) { ESP_write_4byte(array[len-1], array[len-2], 0, 0); }
+    if (len % 4 == 3) { ESP_write_4byte(array[len-1], array[len-2], array[len-3], 0); }
+
+    delay(10);
+}
+\end{lstlisting}
+
+There needs to be a delay between each 32-bit word otherwise the transmission fails.
+This is beacuse the PIC32 will continually transmit without resetting the chip select line
+and the ESP32 needs to reset after each 32-bit word, as far as I can tell this is set.
+
+The idea of the `ESP\_write\_array' function is that it can pack 4 bytes into a signle word
+to negate as much of this delay as possible.
+
+
+\subsection{ADS1294R}
+\subsubsection{Design Differences}
+The chip that was actually used in the design is the ADS1294R!!
+This is contrary to what the schematic and PCB design designators say.
+The only way I figured this out was to physically inspect the board.
+Mostly the same except this one only has 4 channels and so the expected data
+to be read is \(24 + 4 \times 24 = 120\) bits.
+Also does not contain all the same registers as the bigger brothers.
+
+Other differences are that the ID should be `0b11010000'
+Registers `RLD\_SENSP' and `RLD\_SENSN' do not contain bits[4:7]
+Registers `LOFF\_SENSP' and `LOFF\_SENSN' do not contain bits[4:7]
+
+As far as I can tell from the datasheet, everything else should be the same.
+
+Also appears to be additional connection from nDRDY to DGND with some capacitors.
+
+Not 100\% sure if this is actually happening though because only image of PCB design
+low res screenshot of only top side of board. Very hard to follow traces.
+As far as I can tell it seems reasonable that each trace routed from the PIC to the ADS
+is correct. Not really possible to check as it is a ZXG package (basically a BGA package).
+
+Also pin 43 of the PIC is connected to DOUT which according to the datasheet of the PIC
+is actually the SPI chip select pin not the data input pin.
+
+Might have to write a custom driver that just pulls whatever pin the actual chip select
+is connected to low, writes whatever the equivalent SCK pin is high and write/reads
+the corresponding SDO and SDI pin manually.
+
+Not sure if any of this is actually managable anyway because the reset switch
+is a push button and doesn't appear to have any way of switching it via the PIC.
+
+Can't even really tell where the reset pin goes because it is grounded to the sleve of
+the 3.5mm jack?!? Whatever is routed to the switch is on the underside of the board
+that I don't have access to.
+
+Currently trying to change all the configurations to see if any combinations work better.
+If this doesn't work I can look at the actual altium schematics I got from Kenneth.
+Thinking first I'll just try and get the actual ID from the chip
+since it is easy to verify.
+Going to play around with the driver, add delays between reads and writes and try different
+SPI configs to see if anything makes it respond.
+Also will try same thing after physically pressing reset switch because maybe it needs
+hardware reset.
+
+My scope probe wasn't working because of the x10 setting on the probe was x1.
+I actually have managed to get something out of the ID register.
+
+It should be    11010000
+It actually is  01100000
+
+This was gotten by setting SPI bits SMP = 0, CKE = 1, CKP = 0, and pressing
+the reset button for the chip while using the scope to send a signal at the moment it
+would have to be reset in software.
+Managed to repeat this at least one more time. Attempting without pressing hardware reset.
+Still works without hardware switch being pressed. Not correct but better than nothing.
+Only thing that I changed was using the scope to correctly set the delay constant.
+
+Used scope to measure space between pulses then set a specific pulse delay.
+I think previously the delay number was overflowing potentially because it was so large.
+Potentially the delay was way too short and the timing wasn't correct.
+
+Can get 11000000 if I set SMP = 1
+Still missing bit 4 which should be 1 no matter what.
+Trying without hardware reset. Still works.
+
+Setting CKP causes ID to be 0, so that should 100\% be reset.
+
+Resetting it and running again causes ID to be 0
+Pressing reset while it's running fixes the issue.
+Still not what it 100\% should be but it's close.
+
+Increasing the delay amount did not change anything.
+Seems like hardware reset can be pressed midrun and it recovers nicely
+
+Without delays it often does not read correctly.
+Going to add a single delay in the SPI write function to set max speed.
+
+Going to reduce the delays in the init function. Everything seems to work fine.
+Going to try and remove them completely. Seems to work correctly still.
+Appears that the singular delay in the SPI write function was enough and nothing else
+needs it now. Probably good to do this with the ESP SPI write so that the delays are
+only in a single place and can be easily optimised.
+
+Added a substantial amount of extra delay to both to guarantee consistency, can easily
+be optimised later.
+
+Changing SPI3BRG as well to see if that makes any kind of difference.
+Seems like it can be about any value and it still works the same.
+Calculations say it should be greater than 2 so I'll set it to 4 for safety.
+However, still works without propogating errors with a value of 1 which
+should be too fast.
+
+Wondering if the GPIO init I am doing has an effect. Turning it off causes ID to be 0.
+Which is good because it means that I am actually doing something.
+
+Going to go through init function and see what turning various things on/off
+causes the system to do.
+`CLK\_SEL = 0' causes the chip to stop responding.
+Not writing SDATAC doesn't appear to change anything but that could be because I'm not
+doing anything that needs registers set.
+`START\_PIN = 0' causes chip to stop responding.
+
+Ok now that I have a baseline that I can consistenly get to I'm going to try and do more.
+
+
+\subsubsection{Reading Data}
+When reading data it doesn't seem like the DRDY pin ever actually goes low.
+Even when not sending read data continuous it is always high.
+Not really sure if I can trust this though because the pin isn't exposed
+So I'm setting a test point high if it is read high by the microcontroller and it may
+just be staying high because by the time it can poll again it has already read all the data
+and thus the chip is ready to put more data out.
+
+Going to see what happens when I try and read without setting RDATAC.
+Ok so issue now is that I am always reading 11000000 even when not reading the ID.
+
+This is really strange to me because it should be shorted so reading 0.
+Wonder if that also means that the ID I was reading is not actually correct since it wasn't
+exactly what it should have been anyway and it matches what the chip sends continuously.
+
+From my calculations I am reading 15 bytes which is 120 bits which I belive is correct.
+If I don't short the input it is still 11000000
+
+Ok so something definitly not right because even once read a few bytes the `DRDY'
+pin is still high when it should be low.
+
+It's strange because the DRDY pin is active low, in software I am checking `DRDY\_PIN == 0'
+which made me think that maybe the chip just isn't on at all hence why I'm always seeing
+`data\_ready()' as true.
+But this isn't the case since it becomes false if I hold down the reset pin.
+Which means the physical pin is being pulled high when the chip is put into reset which
+seems super strange to me because I would assume everything would just go to 0.
+At least in this case I can confirm that it is actually working.
+
+It seems wrong that sending the stop data read continuous command doesn't stop the chip
+from setting it's data ready pin. Not super logical to me because shouldn't that only be
+true when the data is continuously being streamed.
+
+I think the fact I am getting 192 (AKA 11000000) all the time, probably means that all the
+register writes I am doing are not actually correct. What I should do I think is go back
+to the ID register and attempt to get that to send correctly.
+
+I am not entirely sure where I should start because it seems like this should be working.
+I'm going to go back to the SPI config and see what I can maybe do.
+
+Also might be worth looking at software libaries for Arduino to see what they do in say
+a simple ID test script.
+Maybe there is something here I am missing that is really obvious.
+
+I think it is the power-on timing. Most likely due to hte lack of /RESET pulse since
+that was never connected to the PIC.
+
+Considering that, I think it's fair to assume that the timings may still be too short.
+Might be worth looking at existing Arduino library for how they setup their SPI.
+Also worth looking at schematics to verify there weren't any revision changes with how
+the chip RESET is connected (although I doubt there would be).
+
+Looking at presumably functional Arduino library:
+clock polarity 0, clock phase 1, output edge rising, data capture falling
+
+What this actually means:
+Idles on logic low, data transmission from clock idle to clock active,
+data shifted out on rising clock edge, data sampled on falling clock edge
+
+\textbf{ADDITIONALLY}: Data is MSB first with a datarate of 4,000,000 (AKA 4MHz)
+
+Also just realised it doesn't actually matter what I set the baudrate generator to because
+the system clock is 5Mhz so it will literally always be able to keep up.
+
+
+\subsubsection{Inconsistencies}
+Interestingly enough writing START and STOP appears to work.
+So the actual writing to SPI seems to be correct.
+
+Very weird because it seems like there are two versions of the design.
+The one that got made appears to be older and worse. So not really sure what's going on.
+Perhaps this is the beginning of a revision 2?
+But I also cannot find the altium files for it, only a single pdf remains.
+Shame because the newer one has a bunch of LEDs on it that would make this way easier.
+
+So what we know is that write must work. As writing START and STOP commands have
+an effect.
+What is currently unknown is if the reading and writing register commands work correctly.
+I really don't see how they wouldn't because I've hand checked the bits during debugging.
+Really the only thing I can think at this stage is that maybe the PIC is sending in 32-bit
+mode. That doesn't really make sense since it's configured to 8-bit mode but maybe it
+still sends extra or something (this would be very silly).
+
+I cannot think of anything else to check short of soldering to the pins and checking
+the physical signals that are being send both ways. I'm sure if I did that I would be able
+to verify it almost immediately... Should definitly bring bodge wire on Tuesday and make
+use of the good soldering irons, flux, microscopes, and nice oscilloscopes at uni.
+
+Other than that it could also be the power on cycle needs specific lines held low/high
+and I just do not have digital access to those pins.
+
+Or worst case the entire board has been designed so badly that the chip is having weird
+power issues. Looking at the altium board files it definitly does not look great.
+At least there is a lot to include in ADC challenges for my results.
+
+
+The status word that I am expecting contains the following
+`1100 LOFF\_STATP[7:0] LOFF\_STATN[7:0] GPIO[7:4]'
+So maybe the received 11000000 could be the beginning of that status word but then I
+am not reading any more or something?
+
+GPIO register looks like `DATA[4:1] CONTROL[4:1]' with 0 being outputs and 1 being inputs
+for the control section
+
+So I am not able to write the register. I think at this stage what must be wrong is my
+register writing/reading.
+I think the actual write commands are working
+because if I write sleep, wakeup, start, stop, or reset
+the chip has the response I would expect it to have.
+I am not able to verify SDATAC or RDATAC because the data I am then reading is wrong.
+It also doesn't seem to stop it from giving me data if I send either of them.
+Maybe I should try RDATA and try to just do a simple read see if that makes any difference.
+
+Otherwise, I think the write byte works so I don't see why writing the read/write register
+command then the address of the register is not working.
+
+It could also be that the SDATAC, RDATAC, and RDATA commands do not work for some reason
+This would mean that all my attempts to read and write registers is futile because
+the chip is not going to respond to those commands as it boots into RDATAC mode.
+But even so the chip does not give any readings, just 192 (AKA 11000000) continously
+so I have no idea what that is supposed to mean.
+
+
+\subsubsection{Solution}
+Ok so the issue actually came from the CS line. The line was being driven active for each
+command but because the ADC had multi-byte commands it was expecting the CS line to stay
+active for the entire duration.
+What was instead happening was the CS line was going inactive
+and causing the ADC to reset mid command which meant it was only responding to single byte
+command hence why RESET, STANDBY, WAKEUP, etc were working correctly.
+
+Issue now is my driver has an issue because I'm reading all 0s for the
+ID but on the scope I can see the response is correct.
+
+Issue was that the SPI buffer holds the previous transmitted value so need to clear it once
+before reading again to get actual value.
+
+Also need to make sure to use special `write\_cmd()' function as it contains the neccessary
+chip select setting/resetting and it will not respond to commands otherwise.
+
+
+\section{Results}
+
+\section{Discussion}

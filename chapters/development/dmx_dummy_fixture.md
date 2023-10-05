@@ -31,4 +31,3 @@
       - Base address gives each individual LED address
       - Offsets give color/intensity channels
     - Can either keep independant LED index or divide DMX base address by number of offset channels (4)
-

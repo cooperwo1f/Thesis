@@ -51,6 +51,7 @@ headsepline, % Uncomment to get a line under the header
 \usepackage[autostyle=true]{csquotes} % Required to generate language-dependent quotes in the bibliography
 \usepackage{multirow}
 \usepackage{colortbl}
+\usepackage{listings}
 
 %----------------------------------------------------------------------------------------
 %	MARGIN SETTINGS
@@ -77,7 +78,7 @@ headsepline, % Uncomment to get a line under the header
 % Your examiner's name, this is not currently used anywhere in the template, print it elsewhere with \examname
 \examiner{}
 % Your degree name, this is used in the title page and abstract, print it elsewhere with \degreename
-\degree{Bachelour of Engineering (Electronics)(Honours)}
+\degree{Bachelour of Engineering (Electronics) (Honours)}
 % Your name, this is used in the title page and abstract, print it elsewhere with \authorname
 \author{Cooper Wolfden}
 % Your address, this is not currently used anywhere in the template, print it elsewhere with \addressname
@@ -282,40 +283,13 @@ as well as Clearance Textiles Limited of Strood for providing the numerous bath 
 % Include the chapters of the thesis as separate files from the Chapters folder
 % Uncomment the lines as you write the chapters
 
-\chapter{Introduction}
-\subsection{Background}
-What is the broad idea as a whole
 \include{chapters/introduction}
-
-\subsection{Literature Review}
-What already exists
 \include{chapters/literature_review/literature_review}
-
-\chapter{Methodology}
-\subsection{Project Plan}
-Condensed Project Plan **OR** how the project was going to be achieved
-Should include here some metrics about what we want the system to be able to do
 \include{chapters/project_plan/project_plan}
-
-How the development proceeded (**MIGHT BE GOOD TO TIE THIS TOGETHER WITH PROJECT PLAN**)
-Good to find some references for different things we could habe done but didn't
-Would be good to show that it has been thought about rather than just made up abritarily on the fly
-\include{chapters/methodology}
-
-\chapter{Results}
-What was achieved
-How was it validated
-\include{chapters/results}
-
-\chapter{Discussion}
-How does it compare to what was originally planned
-\include{chapters/discussion}
-
-\chapter{Conclusion}
+\include{chapters/lighting_controller}
+\include{chapters/onbody_device}
+\include{chapters/integration}
 \include{chapters/conclusion}
-
-\chapter{Future Work}
-What can be done going forward
 \include{chapters/future_work}
 
 %----------------------------------------------------------------------------------------
@@ -333,8 +307,9 @@ What can be done going forward
 % Include the appendices of the thesis as separate files from the Appendices folder
 % Uncomment the lines as you write the Appendices
 
-%\include{Appendices/AppendixA}
-%\include{Appendices/AppendixB}
-%\include{Appendices/AppendixC}
+% TODO: eventually need to get this working
+% for some reason makefile does not allow access to this directory
+
+%\include{appendices/gantt_chart}
 
 \end{document}
