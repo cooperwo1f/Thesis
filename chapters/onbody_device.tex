@@ -35,6 +35,8 @@ So for instance can keep MATLAB code running
 for entire sequence of testing without needing to change anything.
 
 \section{ESP32}
+Powering -> Programming (boot configuration) -> WiFi -> Firewall -> OTA -> TCP/IP
+
 \subsection{Power}
 The brownout detector keeps tripping.
 The power distribution of the board is bad and there is voltage drops across traces
@@ -123,6 +125,8 @@ Attempting to solve by plugging in a short USB into port of board.
 Also need to enable ICD 3 powering of board.
 
 \section{PIC32}
+Design Differences -> Programming Config -> Debugging -> ESP32 Control -> ESP32 SPI Comms
+
 \subsection{Packet}
 %\lstinputlisting[language=C]{chapters/research/package_test/simple.c}
 The packet is made up of a struct containing bit length defs
@@ -266,6 +270,8 @@ to negate as much of this delay as possible.
 
 
 \section{ADS1294R}
+PIC32 SPI Comms -> Design Differences -> SPI Config -> Startup Proceedure -> Hardware Reset -> SPI Config -> Probe Debugging -> Chip Select Line
+
 \subsection{Design Differences}
 The chip that was actually used in the design is the ADS1294R!!
 This is contrary to what the schematic and PCB design designators say.
