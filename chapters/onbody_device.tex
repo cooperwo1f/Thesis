@@ -1,8 +1,4 @@
 \chapter{On-Body Device}
-
-\section{Materials/Methods}
-%\lstinputlisting[language=C]{chapters/research/package_test/simple.c}
-
 The hardware I was given was in the process of being programmed.
 It consists of two microcontrollers, a PIC32 and a ESP32.
 The ESP32 had been programmed intermittently
@@ -38,8 +34,8 @@ Also working to keep all code general.
 So for instance can keep MATLAB code running
 for entire sequence of testing without needing to change anything.
 
-\subsection{ESP32}
-\subsubsection{Power}
+\section{ESP32}
+\subsection{Power}
 The brownout detector keeps tripping.
 The power distribution of the board is bad and there is voltage drops across traces
 Measuring 2.6V (3.3V required) when supplying the board from a single power supply
@@ -49,13 +45,13 @@ Almost 2.7V when adding a secondary ground connection
 Closer to 2.8V with additional voltage connection
 2.9V with a 3rd voltage connection
 
-\subsubsection{Firewall}
+\subsection{Firewall}
 For the device to connect to the PC the firewall setting need to be correctly set.
 
-\subsubsection{Programming}
+\subsection{Programming}
 Programming took ages and would fail often.
 
-\subsubsection{Transmission}
+\subsection{Transmission}
 Before I was filling a buffer from the incoming data and waiting until I received
 a newline before sending the entire buffer over TCP/IP all at once.
 Now I receive data and immediately send, provided client.connected()
@@ -126,8 +122,9 @@ is tripped again...
 Attempting to solve by plugging in a short USB into port of board.
 Also need to enable ICD 3 powering of board.
 
-\subsection{PIC32}
-\subsubsection{Packet}
+\section{PIC32}
+\subsection{Packet}
+%\lstinputlisting[language=C]{chapters/research/package_test/simple.c}
 The packet is made up of a struct containing bit length defs
 for each of data types we will be sending.
 
@@ -268,8 +265,8 @@ The idea of the `ESP\_write\_array' function is that it can pack 4 bytes into a 
 to negate as much of this delay as possible.
 
 
-\subsection{ADS1294R}
-\subsubsection{Design Differences}
+\section{ADS1294R}
+\subsection{Design Differences}
 The chip that was actually used in the design is the ADS1294R!!
 This is contrary to what the schematic and PCB design designators say.
 The only way I figured this out was to physically inspect the board.
@@ -374,7 +371,7 @@ doing anything that needs registers set.
 Ok now that I have a baseline that I can consistenly get to I'm going to try and do more.
 
 
-\subsubsection{Reading Data}
+\subsection{Reading Data}
 When reading data it doesn't seem like the DRDY pin ever actually goes low.
 Even when not sending read data continuous it is always high.
 Not really sure if I can trust this though because the pin isn't exposed
@@ -439,7 +436,7 @@ Also just realised it doesn't actually matter what I set the baudrate generator 
 the system clock is 5Mhz so it will literally always be able to keep up.
 
 
-\subsubsection{Inconsistencies}
+\subsection{Inconsistencies}
 Interestingly enough writing START and STOP appears to work.
 So the actual writing to SPI seems to be correct.
 
@@ -497,7 +494,7 @@ But even so the chip does not give any readings, just 192 (AKA 11000000) contino
 so I have no idea what that is supposed to mean.
 
 
-\subsubsection{Solution}
+\subsection{Solution}
 Ok so the issue actually came from the CS line. The line was being driven active for each
 command but because the ADC had multi-byte commands it was expecting the CS line to stay
 active for the entire duration.
@@ -513,8 +510,3 @@ before reading again to get actual value.
 
 Also need to make sure to use special `write\_cmd()' function as it contains the neccessary
 chip select setting/resetting and it will not respond to commands otherwise.
-
-
-\section{Results}
-
-\section{Discussion}

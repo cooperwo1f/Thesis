@@ -1,13 +1,11 @@
 \chapter{Lighting Controller}
-
-\section{Materials/Methods}
-\subsection{Prototyping Fixture}
+\section{Prototyping Fixture}
 Small number of LEDs to verify correct control.
 8 NeoPixel LEDs with 4 `dummy' DMX channels each.
 DMX channels are intensity, red channel, green channel, blue channel.
 Total of 32 channels (\(4 \times 8\))
 
-\subsubsection{DMX}
+\subsection{DMX}
 Fixture uses Arduino along with
 \href{https://github.com/mathertel/DMXSerial}DMXSerial library.
 Receives DMX frames using interrupts
@@ -20,12 +18,12 @@ Updates happen continually at a known rate.
 This way, fixture are aware if they lose connection to the controller,
 since they stop receiving frames.
 
-\subsubsection{NeoPixels}
+\subsection{NeoPixels}
 LEDs controlled using \href{https://github.com/adafruit/Adafruit_NeoPixel}NeoPixel library.
 LEDs can be colored independently using red, green, and blue values.
 Each color is represented using a byte.
 
-\subsubsection{Integration}
+\subsection{Integration}
 Both the DMX channel and color values are represented using bytes.
 No additional scaling is required.
 
@@ -53,17 +51,13 @@ So the main program loops, incrementing by 4 each time,
 and extracts the discrete bytes, setting the base address of the LED to the derived color.
 Once this is done for all the LEDs, they are updated using the show() function.
 
-\subsection{OpenDMX Controller}
-Cost effective DMX controller that can be controlled
+\section{OpenDMX Controller}
+When using expensive hardware in professional settings, it is important to use compliant hardware.
+While the prototyping fixture could be used for system verification,
+it was decided that existing hardware would be purchased for lighting control.
+\textbf{DECISION MATRIX HERE (MIGHT ALREADY HAVE ONE IN MY RESULTS POWER POINT?)}
 
-\subsubsection{Interface}
+\subsection{Interface}
 The driver provided by the manufacturer was written in C\#.
 Existing code for the project is written in MATLAB.
 We needed some way of controlling the device from MATLAB to utilise previous code.
-\textbf{MORE STUFF HERE}
-
-\section{Results}
-\textbf{NOT SURE IF IT MAKES MORE SENSE TO SPLIT THESE INTO THE SAME CATEGORIES
-  AS IN PERVIOUS SECTION OR TALK ABOUT RESULTS AS A WHOLE}
-
-\section{Discussion}
