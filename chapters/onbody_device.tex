@@ -1,53 +1,64 @@
 \chapter{On-Body Device}
-The hardware I was given was in the process of being programmed.
-It consists of two microcontrollers, a PIC32 and a ESP32.
-The ESP32 had been programmed intermittently
-and the PIC32 had been successfully programmed once in order to enable the PIC32.
-I sucessfully programmed the ESP32 and enabled Over The Air (OTA) programming.
-I also implemented TCP/IP communication between the ESP32 and MATLAB.
-Craig Dawson shared code that allowed the PIC32 to be programmed.
-I had previously had issues programming it
-because the device used on the schematics is different
-to what has actually been put on the board.
-The code Craig has given me allows for simple programming,
-but some of the settings for the hardware have not been set correctly
-and the board cannot be put into debug mode.
+The on-body device was developed by William Tran in 2021 and consists of two microcontrollers,
+a PIC32 and a ESP32, as well as 24-bit ADC for taking biosignal measurements.
 
-The process that has been followed to get the hardware working
-is to first program the ESP to allow it to be programmed consistently and conveniently.
-Then, communication with MATLAB was established using TCP/IP.
-This allows for data to be visuallised
-which can help with debugging the rest of the hardware.
-The PIC was then programmed to allow debugging,
-in order to do this the ICE/ICD Comm Channel Select needed to be changed to PGC1/PGD1,
-and DEBUG needed to be enabled.
-Finally, the PIC was programmed to communicate with the ESP
-and the whole chain was tested to verify communication between the PIC and MATLAB.
+At the middle of the year when the project was handed over,
+the ESP32 had been programmed to connect to WiFi, but was only programming intermittently,
+and the PIC32 had barebones programming on it to enable the ESP32 via the enable pin.
 
-Difficulty in that Arduino only provides code for SPI master mode.
-While ESP (programmed using Arduino) in this configuration makes more sense as the slave.
-Somewhat gotten around it using external libraries.
-Also difficulty in that anything that halts the ESP loop causes the OTA handle to stop.
-This means that any bugs that cause an infinite loop also make the ESP unprogrammable.
+The only other contributions were from Craig Dawson who supplied information and code for programming the PIC32,
+as well as attaching wires to specific pins of the PIC32, allowing it to be probed using an oscilloscope.
 
-Also working to keep all code general.
-So for instance can keep MATLAB code running
-for entire sequence of testing without needing to change anything.
 
 \section{ESP32}
-Powering -> Programming (boot configuration) -> WiFi -> Firewall -> OTA -> TCP/IP
-
 \subsection{Power}
-The brownout detector keeps tripping.
-The power distribution of the board is bad and there is voltage drops across traces
-Measuring 2.6V (3.3V required) when supplying the board from a single power supply
-(current limit is 2x what is required)
+As stated, the ESP32 was only programming intermittently.
+To determine what the cause of this unwanted behaviour was,
+the board was tested in the following states in order to measure changes in how the ESP32 programmed.
 
-Almost 2.7V when adding a secondary ground connection
-Closer to 2.8V with additional voltage connection
-2.9V with a 3rd voltage connection
+\begin{itemize}
+        \item The board was connected to a lab bench power supply with a non-restrictive current limit.
+        \item The boot select switch was held for the extent of the programming cycle.
+        \item The boot select switch was held until programming began.
+        \item The boot select switch was held from when the device was powered on until programming ended.
+        \item The board was powered from a lab bench power supply as well as via USB through an ICD3.
+        \item All the same boot select switch options were repeated with the additional power being supplied.
+\end{itemize}
 
-\subsection{Firewall}
+From this testing, it was discovered that the ESP32 programs succesfully when it is being adequately powered
+and the boot select switch is pressed as the device is being powered on.
+
+The additional power requirement is not due to any external limitations with the power supply,
+as the current draw that the supply is measuring is significantly less than the current limit.
+Additionally, there is a reduction in current draw from the first supply once the additional power supply is added.
+This means that the load is being shared between the two supplies,
+as opposed to the first supply being at its max and the second supply provided neccessary additional power.
+
+What his means more broadly is that the problem with programming the device comes from the power distribution of the on-body device.
+This can be further verified by measuring the voltage at points on the on-body device.
+All of the ICs on the device operate at a 3.3V power level.
+When measuring the voltage at the input pins of the ICs and at headers around the board, the voltage appears to be closer to 2.6V.
+As we add addtional voltage connections, we can observe the voltage rise.
+Although the voltage does not reach 3.3V, the increase in voltage appears to be enough for the ICs to remain powered on.
+This appears to be because the power traces on the board are not wide enough.
+Because of this, the traces have significant resistance which causes a voltage drop to occur across them once the higher IC currents begin to flow.
+
+For the ESP32, the lower voltage causes a brownout detection feature of the device to activate, causing it to reset.
+The effect that has on the device is that it will reset itself out of programming mode, causing the programming to fail.
+This is because the ESP32 must be put into programming mode by holding down the boot select switch while the device is initially powered on.
+So, even in instances when the device has been succesfully put into this mode,
+the device reset caused by the brownout detector reverts it out of this mode.
+
+Once the power supply was supplimented with additional power supplies, this issue became less problematic.
+However, an additional issues arose as the ESP32 has to be placed into programming mode as it is powered.
+With the addition of these power supplies, there is significant coordination required in order to get it into this mode.
+Since the power is also required to keep the ESP32 from resetting, all of the supplies need to be disconnected and reconnected at the same time,
+while the boot select switch is pressed.
+For prototyping, this becomes extremely cumbersome because this process must be repeated every time there is a change.
+Additionally, with this setup there is not way to validate the correct entry into programming mode,
+meaning there is not way to know if it has actually been placed into the correct mode until the programming fails.
+
+\subsection{Networking}
 For the device to connect to the PC the firewall setting need to be correctly set.
 
 \subsection{Programming}
