@@ -51,20 +51,79 @@ the device reset caused by the brownout detector reverts it out of this mode.
 
 Once the power supply was supplimented with additional power supplies, this issue became less problematic.
 However, an additional issues arose as the ESP32 has to be placed into programming mode as it is powered.
-With the addition of these power supplies, there is significant coordination required in order to get it into this mode.
+With the addition of these power supplies, there is coordination required in order to get it into this mode.
 Since the power is also required to keep the ESP32 from resetting, all of the supplies need to be disconnected and reconnected at the same time,
 while the boot select switch is pressed.
-For prototyping, this becomes extremely cumbersome because this process must be repeated every time there is a change.
 Additionally, with this setup there is not way to validate the correct entry into programming mode,
 meaning there is not way to know if it has actually been placed into the correct mode until the programming fails.
+For prototyping, this becomes extremely cumbersome because this process must be repeated every time there is a change.
+As well as whenever the programming fails due to an unexpected reset.
 
-\subsection{Networking}
-For the device to connect to the PC the firewall setting need to be correctly set.
+\subsection{Over-The-Air Programming}
+\ref{https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=5a31727b9b9e5f6a01f5f33a97f787f3db630b32}
+When compared to the alternative, Over-The-Air (OTA) programming has a number of benefits.
 
-\subsection{Programming}
-Programming took ages and would fail often.
+\begin{itemize}
+        \item The device can be programmed regardless of the boot mode.
+        \item The device can be programmed without the use of a UART converter.
+        \item The device can be programmed without a physical connection to a PC.
+\end{itemize}
 
-\subsection{Transmission}
+The downsides to this programming mode is that it adds additional compilation time, as well as runtime time \textbf{?}.
+However, the compilation time is already in the range of 40 to 50 seconds, and the addition is less than 5 seconds.
+Considering these benefits and drawbacks, it was determined that this programming mode should be implemented.
+
+The first step in implementing this feature was to connect the device to the network.
+The ESP32 is programmed using the Arduino IDE, which contains a WiFi library for the ESP32.
+The code for simple WiFi device bringout is shown in~\ref{code:wifi}.
+
+\begin{lstlisting}[language=C++]
+\caption{Arduino code for connected ESP32 to WiFi}\label{code:wifi}
+  #include <WiFi.h>
+
+  void setup() {
+    Serial.begin(115200);
+    Serial.println('Booting');
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(SSID, PASS);
+
+    while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+      Serial.println(''Connection Failed! Rebooting...'');
+      delay(5000);
+      ESP.restart();
+    }
+
+  }
+\end{lstlisting}
+
+Once the device has been connected to the network, OTA programming can be implemented using the ArduinoOTA library.
+This consists of including the \begin{lstlisting} ArduinoOTA.h \end{lstlisting}
+header file, configuring OTA updates using the code shown in~/ref{code:ota},
+and calling \begin{lstlisting} ArduinoOTA.handle() \end{lstlisting}
+in the primary loop of the program.
+
+\begin{lstlisting}[language=C++]
+\caption{Arduino code for configuring OTA updates}\label{code:ota}
+  ArduinoOTA
+  .onStart([]() {
+    String type;
+
+    if (ArduinoOTA.getCommand() == U_FLASH)
+      type = ``sketch'';
+    else // U_SPIFFS
+      type = ''filesystem'';
+
+  });
+
+\end{lstlisting}
+
+After implementing these libraries, the ESP32 can be programmed using OTA by selecting the relevant device.
+One caveat of this is that the OTA updates will only be pushed as long as the OTA handler is called.
+So, for instances where the ESP32 is in an infinite loop, or when there is a substantially long delay in the primary loop,
+the ESP32 will need to be programmed using the original hardware method.
+
+\subsection{Wireless Transmission}
+
 Before I was filling a buffer from the incoming data and waiting until I received
 a newline before sending the entire buffer over TCP/IP all at once.
 Now I receive data and immediately send, provided client.connected()
@@ -137,6 +196,56 @@ Also need to enable ICD 3 powering of board.
 
 \section{PIC32}
 Design Differences -> Programming Config -> Debugging -> ESP32 Control -> ESP32 SPI Comms
+
+\subsection{Programming Configuration}
+The board designed by Tran \textbf{(REFERENCE HERE)} was designed in 2021.
+When the board was being manufactured, there was a global supply chain issue \textbf{(REF?)}.
+Because of this, the schematic design of the board was different to what was assembled on the board.
+This caused issues when programming the PIC32, because the specific model of PIC had changed.
+So, when the programmer connected to the device, it would read a different device ID from what was expected,
+and the programming would fail.
+Updating the project to use the PIC32MX775F512H solved this programming issue.
+
+The other hurdle in programming the PIC32 was in the clock configuration.
+With incorrect clock configuration, the device still programs, but it is not able to be put into debug mode.
+Additionally, all intentional delays are based on the clock speed so it must be set correctly for the delays to be correct.
+
+The clock configuration uses PLL~\ref{https://www.ijert.org/phase-locked-loop-a-review}.
+It has been configured with a input divider of 10, a multiplier of 16, and an output divider of 8.
+With a 16 MHz crystal, the system clock frequency becomes \textbf{CALCULATE}.
+\((16 MHz / 10 * 16) / 8 = 50 MHz\)
+
+The system clock frequency was verified by measuring the delay between pulses using an oscilloscope.
+The code for delays in the system is shown in~\ref{code:delay}, and code for generating output pulses is shown in~\ref{code:pulses}
+
+\begin{lstlisting}
+  \caption{PIC32 code for adding delays in code execution (in microseconds)}\label{code:delay}
+  void delay_us(unsigned int us) {
+    us *= DELAY_CONST;              // DELAY_CONST = SYS_FREQ / 1000000 / 2
+    _CP0_SET_COUNT(0);              // Set Core Timer count to 0
+    while (us > _CP0_GET_COUNT());  // Wait until Core Timer count reaches the number we calculated earlier
+  }
+
+  void delay(int ms) {
+    delay_us(ms * 1000);
+  }
+\end{lstlisting}
+
+\begin{lstlisting}
+  \caption{PIC32 code for measuring system clock speed using delayed pulses}\label{code:pulses}
+  #define TP7 PORTDbits.RD5 // Pin definition for test point 7
+
+  void run() {
+    TP7 = 1;
+    delay(100);
+    TP7 = 0;
+    delay(100);
+  }
+\end{lstlisting}
+
+The measured results for this are shown on the oscilloscope image seen in \textbf{(FIGURE OF SCOPE HERE)}
+This shows that the period between the pulses are exactly what the delay has been set to.
+This means the clock speed has been set correctly, as the offset delay constant is based on the system clock speed.
 
 \subsection{Packet}
 %\lstinputlisting[language=C]{chapters/research/package_test/simple.c}
