@@ -11,6 +11,11 @@ as well as attaching wires to specific pins of the PIC32, allowing it to be prob
 
 
 \section{ESP32}
+The ESP32 on the board is the \textbf{ESP MODEL}.
+This device is used as a wireless brige between the on-body device and the off-body PC.
+It connects to the PIC32 through a Serial Peripheral Interface (SPI) bus.
+It is programmed using the Arduino software enviroment.
+
 \subsection{Power}
 As stated, the ESP32 was only programming intermittently.
 To determine what the cause of this unwanted behaviour was,
@@ -75,10 +80,9 @@ Considering these benefits and drawbacks, it was determined that this programmin
 
 The first step in implementing this feature was to connect the device to the network.
 The ESP32 is programmed using the Arduino IDE, which contains a WiFi library for the ESP32.
-The code for simple WiFi device bringout is shown in~\ref{code:wifi}.
+The code for simple WiFi device bringout is shown in~\autoref{code:wifi}.
 
-\begin{lstlisting}[language=C++]
-\caption{Arduino code for connected ESP32 to WiFi}\label{code:wifi}
+\begin{lstlisting}[language=C++,caption={Arduino code for connected ESP32 to WiFi}\label{code:wifi}]
   #include <WiFi.h>
 
   void setup() {
@@ -97,13 +101,11 @@ The code for simple WiFi device bringout is shown in~\ref{code:wifi}.
 \end{lstlisting}
 
 Once the device has been connected to the network, OTA programming can be implemented using the ArduinoOTA library.
-This consists of including the \begin{lstlisting} ArduinoOTA.h \end{lstlisting}
-header file, configuring OTA updates using the code shown in~/ref{code:ota},
-and calling \begin{lstlisting} ArduinoOTA.handle() \end{lstlisting}
-in the primary loop of the program.
+This consists of including the ArduinoOTA.h header file,
+configuring OTA updates using the code shown in~\autoref{code:ota},
+and calling ArduinoOTA.handle() in the primary loop of the program.
 
-\begin{lstlisting}[language=C++]
-\caption{Arduino code for configuring OTA updates}\label{code:ota}
+\begin{lstlisting}[language=C++,caption={Arduino code for configuring OTA updates}\label{code:ota}]
   ArduinoOTA
   .onStart([]() {
     String type;
@@ -122,80 +124,12 @@ One caveat of this is that the OTA updates will only be pushed as long as the OT
 So, for instances where the ESP32 is in an infinite loop, or when there is a substantially long delay in the primary loop,
 the ESP32 will need to be programmed using the original hardware method.
 
-\subsection{Wireless Transmission}
-
-Before I was filling a buffer from the incoming data and waiting until I received
-a newline before sending the entire buffer over TCP/IP all at once.
-Now I receive data and immediately send, provided client.connected()
-I use slave.available() to specify the length of data to be sent.
-
-This is better because it keeps the TCP/IP transmitter simple and also allows all
-of the packet metadata to be changeable independently of the ESP.
-
-Currently having a number of IO issues with the PIC32.
-Seems like no matter how I set the IO register direction, or how I set
-the PORT or LATCH bits, the IO pin never changes.
-I appear to be able to correctly read from the IO port although this
-hasn't been fully tested I am just able to see ports that should be
-inputs driven high.
-
-It may be worth setting those to outputs and see if I still read them
-as inputs because it seems like there is no pin assertion happening.
-
-Setting the TRIS bit and then writing the PORTx bit high is all that
-needs to be done.
-I can verify this because the ESP32 needs its enable pin to be pulled
-high and that is done sucesfully using `TRISBbits.TRISB2 = 0;' and
-`PORTBbits.RB2 = 1;'
-(testing this by setting `PORTBbits.RB2 = 0' resulted in the ESP
-shutting down)
-It just seems that no matter what I do, I cannot get signal on any of
-the test points. I'm trying to determine if it's an issue with the
-program or if the pinout is incorrect or if the routing was not done
-properly or some other issue like maybe my scope isn't referenced to
-the correct ground and the voltage that is present is actually not
-being measured.
-
-I'm thinking a reasonable way to proceed would be to continuity test
-a specific pin and 100\% verify the port and pin before checking it just
-with the multimeter to determine if voltage is present. Then, once that
-has be sorted move on to using the scope.
-What do we know:
-
-    - Pin outputs are set using TRISx and PORTx.
-    - The enable pin for the ESP is using one of these pins
-        - Although all that I've really been seeing
-        is the brownout detector being triggered
-        so maybe the ESP not working is unrelated to the
-        tampering I was doing with that pin...
-    - I am not able to see changes on any of the test points
-        - This is really strange because I am setting the entire port
-        worth of pins so I don't see how they could be getting missed.
-
-I think it's worth investigating the ESP enable pin a little closer.
-Maybe check voltage with a multimeter since it should be pretty easy.
-Then, if there is voltage attempt to remove and see what the ESP does
-(when properly powered using external supply as to not trip
-brownout detection).
-Then continue to different pin on same port, verify that is also working.
-Finally, attempt changing port and test off pin of controller.
-Continuity test between pin and test point then check test point.
-If all correct we know 100% that the issue is with the scope.
-
-Might have something to do with the brownout detector that the ESP is constantly triggering.
-Think this is because the board requires more power to perform specific actions.
-For instance, I think the PIC debugging requires a bit of power because of the speed,
-and when it happens the ESP voltage drops low enough that it causes a brownout.
-My solution to this is to decrease the clock speed of the PIC since the 80MHz is much
-faster than what we actually need the system to ever run at considering the requirements.
-
-Slowing the clock speed did not fully solve the issue and sometime the brownout detector
-is tripped again...
-Attempting to solve by plugging in a short USB into port of board.
-Also need to enable ICD 3 powering of board.
 
 \section{PIC32}
-Design Differences -> Programming Config -> Debugging -> ESP32 Control -> ESP32 SPI Comms
+The PIC32 on the board is the PIC32MX775F512H.
+It connects to sensors, the 24-bit ADC, and the ESP32.
+It is the main processor on the on-body device and it is programmed in C using MPLAB X v5.00 with an ICD 3.
+The ICD 3 must be supplying 3.3V to on-body device in order for the PIC32 to be programmed succesfully.
 
 \subsection{Programming Configuration}
 The board designed by Tran \textbf{(REFERENCE HERE)} was designed in 2021.
@@ -216,14 +150,13 @@ With a 16 MHz crystal, the system clock frequency becomes \textbf{CALCULATE}.
 \((16 MHz / 10 * 16) / 8 = 50 MHz\)
 
 The system clock frequency was verified by measuring the delay between pulses using an oscilloscope.
-The code for delays in the system is shown in~\ref{code:delay}, and code for generating output pulses is shown in~\ref{code:pulses}
+The code for delays in the system is shown in~\autoref{code:delay}, and code for generating output pulses is shown in~\autoref{code:pulses}
 
-\begin{lstlisting}
-  \caption{PIC32 code for adding delays in code execution (in microseconds)}\label{code:delay}
+\begin{lstlisting}[language=C,caption={PIC32 code for adding delays in code execution (in microseconds)}\label{code:delay}]
   void delay_us(unsigned int us) {
     us *= DELAY_CONST;              // DELAY_CONST = SYS_FREQ / 1000000 / 2
-    _CP0_SET_COUNT(0);              // Set Core Timer count to 0
-    while (us > _CP0_GET_COUNT());  // Wait until Core Timer count reaches the number we calculated earlier
+    _CP0_SET_COUNT(0);              // Reset Core Timer
+    while (us > _CP0_GET_COUNT());  // Wait until Core Timer reaches desired number of clock ticks
   }
 
   void delay(int ms) {
@@ -231,8 +164,7 @@ The code for delays in the system is shown in~\ref{code:delay}, and code for gen
   }
 \end{lstlisting}
 
-\begin{lstlisting}
-  \caption{PIC32 code for measuring system clock speed using delayed pulses}\label{code:pulses}
+\begin{lstlisting}[language=C,caption={PIC32 code for measuring system clock speed using delayed pulses}\label{code:pulses}]
   #define TP7 PORTDbits.RD5 // Pin definition for test point 7
 
   void run() {
@@ -244,167 +176,156 @@ The code for delays in the system is shown in~\ref{code:delay}, and code for gen
 \end{lstlisting}
 
 The measured results for this are shown on the oscilloscope image seen in \textbf{(FIGURE OF SCOPE HERE)}
-This shows that the period between the pulses are exactly what the delay has been set to.
-This means the clock speed has been set correctly, as the offset delay constant is based on the system clock speed.
+This figure shows a 100 ms delay between pulses.
+This is exactly what the software delay has been set to, which verifies that the system clock frequency has been set correctly,
+because the delay relies on the system frequency to calculate the desired amount of clock ticks to wait.
 
-\subsection{Packet}
-%\lstinputlisting[language=C]{chapters/research/package_test/simple.c}
-The packet is made up of a struct containing bit length defs
-for each of data types we will be sending.
+With the system clock frequency set correctly, debugging works on the device and the CPU can be halted and stepped through instructions as the program is running.
 
-This struct is then treated as an array and encoded using base64
-(decision matrix pending).
+\subsection{ESP32 Control}
+The ESP32 is controlled by the PIC32 in two ways.
 
-The encoded data is then sent via SPI to the ESP32 which acts
-as a SPI slave that simply receives any amount of data
-(less than 1024 bytes long) and transmits it once it receives
-the end of line character (`\\n').
-This character is hard coded but it also required to be present
-for the MATLAB code to function so it is consistent across both.
+\begin{itemize}
+        \item The ESP32 enable pin is connected to pin 14 (RB2) of the PIC32.
+        \item The ESP32 HSPI bus is connected to SPI2 of the PIC32
+\end{itemize}
 
-The challenge now is that the data needs to be decoded in MATLAB.
-The following code can be used in a callback function to convert
-the received encoded data into an array of byte values.
+The enable pin of the ESP32 just needs to be asserted high, which can be done by the PIC32 using the code shown in~\autoref{code:esp_en}
 
-\begin{lstlisting}[language=MATLAB]
-base64 = readline(src);
-decoded = transpose(matlab.net.base64decode(char(base64)));
+\begin{lstlisting}[language=C,caption={PIC32 code for enabling the ESP32}\label{code:esp_en}]
+  void ESP32_IO_init() {
+    TRISBbits.TRISB2 = 0;       // Set ESP32 EN pin as output
+    PORTBbits.RB2 = 1;          // Set ESP32 EN pin high
+  }
 \end{lstlisting}
 
-The decoded data can then be converted into the correct format
-using the following code
+Without this assertion, the ESP32 is unresponsive to programming and does not perform code execution.
 
-\begin{lstlisting}[language=MATLAB]
-x = uint8(decoded(9:12));
-disp(typecast(x, 'uint32'))
+The other form of control is through the respective SPI lines of the two microcontrollers.
+The SPI driver for the PIC32 is simple, as that device acts as the `master', which is the typical mode for a microcontroller to operate in.
+The PIC32 is configured as a 32-bit master operating in SPI mode 0~\ref{https://www.sciencedirect.com/science/article/abs/pii/B9780123914903000047}
+The boardrate generator value has been calculated using the equation \(BRG = (F_{PB} / 2 \times F_{SCK}) - 1\). \textbf{CALCULATE THIS: BRG = 50}.
+Finally, the low-level SPI driver is implemented in~\autoref{code:spi_driver}
+
+\begin{lstlisting}[language=C,caption={PIC32 low-level SPI driver}\label{code:spi_driver}]
+  uint32_t ESP32_SPI_write(uint32_t data) {
+    SPI2BUF = data;                 // Place data we want to send in SPI buffer
+    while(!SPI2STATbits.SPITBE);    // Wait until sent status bit is cleared
+    uint32_t read = SPI2BUF;        // Read data from buffer to clear it
+
+    delay_us(5000);                 // Required delay for data transmission
+    return read;
+  }
 \end{lstlisting}
 
-The issue here is that there is a lot of hardcoded values
-in both the index of the data and the conversion format.
-One solution is to remove all bit length defs and send everything
-as 32-bit words. The tradeoff is that it is potentially quite wasteful.
-For instance, if we only needed to send 8-bits, we are essentially
-sending 24-bits of unnecessary data that will all be 0s.
+The function of the code is relatively straightforward.
+The memory location of the SPI2BUF variable is mapped to the SPI 2 peripheral.
+When written to, the data at this address is written into a transmit buffer that queues the data for SPI transmission.
+When read from, data that has been received by the SPI peripheral is taken from the receive buffer.
+Between these two operations the processor waits for the SPITBE status flag to be set.
+This flag corresponds to the transmission buffer being empty, and is set once transmission has been completed and data has been received.
 
-We ideally want to send a header at the start of transmission that
-contains all the information regarding size of data, etc.
-Then send a packet identifier so the system knows what data to expect.
+Additionally, a delay is required between SPI writes in order to stop data from becomming corrupt.
+This delay was embedded into the low-level driver to make eventual performance optimisation centralized,
+since this delay is a clear cost to performance and by far the cause of the most communication slowdown.
+This delay is most likely necessary due to the operation of the SPI chip select line.
+Specifically, the way the chip select line does not reset between SPI transmissions without adequate delays between writes.
+This could be solved by manually asserting the chip select line instead of allowing the peripheral to control it.
+However, due to time restrictions it was decided that features should be prioritized over performance,
+and thus the driver was implemented using significantly slower delay.
 
-What would be good is to have all the identifiers be bitwise OR'd
-with each other so that the MATLAB code can just look at the identifier
-bit and can tell which pieces of data are present.
-This is better than the alternative of having seperate identifiers for
-every combination of data because then we can just define everything once.
-For example our header could look like the following:
+The ESP32 SPI configuration was less straightforward.
+As microcontrollers are typically the devices that coordinate communication between various `dumb' sensors,
+they almost always act as the SPI master.
+However, since the on-body device uses multiple microcontrollers communicating via SPI,
+one of these devices needs to act as a slave.
+Since the PIC32 is what communicates to the sensors, and the ESP32 only acts as a wireless transmitter,
+the PIC32 was configured as the SPI master, leaving the ESP32 as an SPI slave.
+There no official support for this in the native development enviroment, so either a custom or third party library must be used.
+In the interest of getting as much of the project functional as possible, it was decided that a third party library would be used \textbf{DECISION MATRIX?}.
+However, there are potential peformance improvements that could be achieved if a custom library was used, such as reducing the PIC transmission delays,
+so it is recommended that this option is looked into in the future.
 
-\begin{lstlisting}[language=C]
-IDENTIFIER = 0b10011000
-\end{lstlisting}
+The library that was used is the ESP32DMASPI~\ref{https://github.com/hideakitai/ESP32DMASPI} library.
+This library is based on the official driver from the manufacture~\ref{https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/spi_slave.html#spi-slave-driver}.
 
-which might correspond to ECG data, RESP data, and EMG data.
-The definitions for those data masks could be as follows:
+How do I describe my workarounds in order to get this to work aside from just saying that that's what I did?
+SPI implemented using task based DMA receiving.
+Tasks run in seperate threads, which frees up main thread to only process OTA updates.
+One task runs continously waiting for SPI transmission~\autoref{code:esp_spi}.
 
-\begin{lstlisting}[language=C]
-ECG_MASK = 0b10000000
-RSP_MASK = 0b00010000
-EMG_MASK = 0b00001000
-\end{lstlisting}
-
-We could see from this that the identifier contains the corresponding
-masks and use it to extract the data.
-We could then say that the highest mask takes prescience.
-So, in this example the ECG data would come first since its mask's bit
-is the highest in the identifier.
-
-Then, all we need to define is that the mask bit corresponds to x amount
-of data. So that once we see a specific mask bit is set we can
-automatically align the data.
-
-I think its best to do this first manually by having all the masks
-and sizes set. Then, once that is working move to having a config packet
-that sets the masks and sizes dynamically.
-The goal is to keep the definitions in once place and propagate it
-through the system.
-
-Wrote a debug routine to print arbritary text to MATLAB via SPI/TCP.
-
-\begin{lstlisting}[language=C]
-void debug(const char *fmt, ...) {
-    va_list args;
-    char str[1024];
-
-    va_start(args, fmt);
-    vsprintf(str, fmt, args);
-    va_end(args);
-
-    write_packet(str, strlen(str));
-}
-\end{lstlisting}
-
-Then can receive in MATLAB using
-
-\begin{lstlisting}[language=MATLAB]
-y = char(decoded);
-disp(y)
-\end{lstlisting}
-
-\subsubsection{SPI}
-Currently running into issues where the SPI transmission does not work consistently.
-Tested it independently and got it presumably working quite well but for some reason
-now that it's been implemented into the rest of the chain it only works if there is
-significant delay.
-
-\begin{lstlisting}[language=C]
-for (size_t i = 0; i < output_length; i++) {
-    char str[128];
-    sprintf(str, "%c", encoded_data[i]);
-    ESP_write_array(str, strlen(str));
-}
-\end{lstlisting}
-
-This was originally the only way to get transmission to work.
-output length is the length of the base64 encoded string.
-I essentially had to write each character seperatly as if it were a string.
-This is a problem because the write function that I am using contains a significant delay.
-
-\begin{lstlisting}[language=C]
-void ESP_write_array(uint8_t *array, size_t len) {
-    for (size_t i = 0; i < len; i += 4) {
-        ESP_write_4byte(array[i], array[i+1], array[i+2], array[i+3]);
+\begin{lstlisting}[language=C++,caption={ESP32 code for receiving SPI data}\label{code:esp_spi}]
+  void task_wait_spi(void* pvParameters) {
+    while (1) {
+      ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+      slave.wait(buffer, BUFFER_LENGTH);
+      xTaskNotifyGive(task_handle_process_buffer);
     }
-
-    if (len % 4 == 1) { ESP_write_4byte(array[len-1], 0, 0, 0); }
-    if (len % 4 == 2) { ESP_write_4byte(array[len-1], array[len-2], 0, 0); }
-    if (len % 4 == 3) { ESP_write_4byte(array[len-1], array[len-2], array[len-3], 0); }
-
-    delay(10);
-}
+  }
 \end{lstlisting}
 
-There needs to be a delay between each 32-bit word otherwise the transmission fails.
-This is beacuse the PIC32 will continually transmit without resetting the chip select line
-and the ESP32 needs to reset after each 32-bit word, as far as I can tell this is set.
+Once data has been received, a different task handles processing the incomming data~\autoref{code:esp_spi_processing}.
 
-The idea of the `ESP\_write\_array' function is that it can pack 4 bytes into a signle word
-to negate as much of this delay as possible.
+\begin{lstlisting}[language=C++,caption={ESP32 code for processing SPI data}\label{code:esp_spi_processing}]
+  void task_process_buffer(void* pvParameters) {
+    while (1) {
+      ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+      print_array(buffer, slave.available());
+      slave.pop();
+      xTaskNotifyGive(task_handle_wait_spi);
+    }
+  }
+\end{lstlisting}
+
+\textbf{DESCRIBE MORE DETAIL ABOUT HOW THESE WORK.}
+
+This should have been the end of the SPI implementation,
+however the SPI communication did not work with just this code.
+To get the communication working some additional functions were required on the PIC~\autoref{code:spi_additional_functions}.
+
+\begin{lstlisting}[language=C++, caption={PIC32 additional SPI functions}\label{code:spi_additional_functions}]
+  void ESP32_SPI_write_4byte(uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4) {
+    uint32_t word = ((uint32_t)b1 << 24)
+                  | ((uint32_t)b2 << 16)
+                  | ((uint32_t)b3 << 8)
+                  | (uint32_t)b4;
+
+    ESP32_SPI_write(word);
+  }
+
+  void ESP32_SPI_write_byte(uint8_t data) {
+    ESP32_SPI_write_4byte(data, 0, 0, 0);
+  }
+\end{lstlisting}
+
+Then, the only way to send data was to write a single byte at a time.
+What is interesting about this is that the single byte is located at the front of the 4 byte word.
+This implies that the ESP32 was not able to receive 32-bits, and instead was just receiving the first 8-bit word.
+However, if the SPI peripheral of the PIC32 was put into 8-bit mode (and all respective code changed to fit that mode),
+the ESP32 would receive nothing.
+So, the ESP32 required the PIC32 to send 32 SPI clock pulses but would only receive the first 8 data bits.
+This same behaviour was also present when using a task based approach or a polling approach and when DMA was or was not in use.
+It is a substantial issue because it adds a 75\% overhead to the communication system.
+This, and the required delay in the low-level driver, are the primary candidates for future optimisations.
+
+However, despite these performance issues, the drivers function together.
+Allowing abritary bytes to be shared between the two devices.
 
 
 \section{ADS1294R}
-PIC32 SPI Comms -> Design Differences -> SPI Config -> Startup Proceedure -> Hardware Reset -> SPI Config -> Probe Debugging -> Chip Select Line
+The ADS1294R is a 4 channel, 24-bit, delta-sigma analog-to-digital converter with additional features to support electrocardiogram and electroencephalogram measurements.
+This device is the primary sensor front end.
+It communicates with the PIC32 via SPI as well as several hardware control lines.
 
 \subsection{Design Differences}
-The chip that was actually used in the design is the ADS1294R!!
-This is contrary to what the schematic and PCB design designators say.
-The only way I figured this out was to physically inspect the board.
-Mostly the same except this one only has 4 channels and so the expected data
-to be read is \(24 + 4 \times 24 = 120\) bits.
-Also does not contain all the same registers as the bigger brothers.
+Like the PIC32, the schematic for the ADS1294R were slightly different to what was assembled due to chip shortages.
+The schematic showed the devices as an ADS1298R, which is the 8 channel version of the device.
+This is significant because the device requires a specific number of SPI clock pulses to be sent that correlates to the number of channels on the device.
+So sending the wrong number of clock pulses will generate undesired results.
+Additionally, the device ID is different which can cause some confusion when intially trying to configure the device.
 
-Other differences are that the ID should be `0b11010000'
-Registers `RLD\_SENSP' and `RLD\_SENSN' do not contain bits[4:7]
-Registers `LOFF\_SENSP' and `LOFF\_SENSN' do not contain bits[4:7]
+\subsection{SPI}
 
-As far as I can tell from the datasheet, everything else should be the same.
 
 Also appears to be additional connection from nDRDY to DGND with some capacitors.
 

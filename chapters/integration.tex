@@ -7,8 +7,184 @@ This device must receive data wirelessly from the on-body device and processes i
 \lstinputlisting[language=MATLAB]{chapters/development/MATLAB/TCPIP_EXAMPLE.m}
 \lstinputlisting[language=MATLAB]{chapters/development/MATLAB/TCPIP.m}
 
+\subsection{Wireless Transmission}
+
+Before I was filling a buffer from the incoming data and waiting until I received
+a newline before sending the entire buffer over TCP/IP all at once.
+Now I receive data and immediately send, provided client.connected()
+I use slave.available() to specify the length of data to be sent.
+
+This is better because it keeps the TCP/IP transmitter simple and also allows all
+of the packet metadata to be changeable independently of the ESP.
+
+Currently having a number of IO issues with the PIC32.
+Seems like no matter how I set the IO register direction, or how I set
+the PORT or LATCH bits, the IO pin never changes.
+I appear to be able to correctly read from the IO port although this
+hasn't been fully tested I am just able to see ports that should be
+inputs driven high.
+
+It may be worth setting those to outputs and see if I still read them
+as inputs because it seems like there is no pin assertion happening.
+
+Setting the TRIS bit and then writing the PORTx bit high is all that
+needs to be done.
+I can verify this because the ESP32 needs its enable pin to be pulled
+high and that is done sucesfully using `TRISBbits.TRISB2 = 0;' and
+`PORTBbits.RB2 = 1;'
+(testing this by setting `PORTBbits.RB2 = 0' resulted in the ESP
+shutting down)
+It just seems that no matter what I do, I cannot get signal on any of
+the test points. I'm trying to determine if it's an issue with the
+program or if the pinout is incorrect or if the routing was not done
+properly or some other issue like maybe my scope isn't referenced to
+the correct ground and the voltage that is present is actually not
+being measured.
+
+I'm thinking a reasonable way to proceed would be to continuity test
+a specific pin and 100\% verify the port and pin before checking it just
+with the multimeter to determine if voltage is present. Then, once that
+has be sorted move on to using the scope.
+What do we know:
+
+    - Pin outputs are set using TRISx and PORTx.
+    - The enable pin for the ESP is using one of these pins
+        - Although all that I've really been seeing
+        is the brownout detector being triggered
+        so maybe the ESP not working is unrelated to the
+        tampering I was doing with that pin...
+    - I am not able to see changes on any of the test points
+        - This is really strange because I am setting the entire port
+        worth of pins so I don't see how they could be getting missed.
+
+I think it's worth investigating the ESP enable pin a little closer.
+Maybe check voltage with a multimeter since it should be pretty easy.
+Then, if there is voltage attempt to remove and see what the ESP does
+(when properly powered using external supply as to not trip
+brownout detection).
+Then continue to different pin on same port, verify that is also working.
+Finally, attempt changing port and test off pin of controller.
+Continuity test between pin and test point then check test point.
+If all correct we know 100% that the issue is with the scope.
+
+Might have something to do with the brownout detector that the ESP is constantly triggering.
+Think this is because the board requires more power to perform specific actions.
+For instance, I think the PIC debugging requires a bit of power because of the speed,
+and when it happens the ESP voltage drops low enough that it causes a brownout.
+My solution to this is to decrease the clock speed of the PIC since the 80MHz is much
+faster than what we actually need the system to ever run at considering the requirements.
+
+Slowing the clock speed did not fully solve the issue and sometime the brownout detector
+is tripped again...
+Attempting to solve by plugging in a short USB into port of board.
+Also need to enable ICD 3 powering of board.
+
 \section{System Integration}
 With the on-body device as a single block, how the system has been fully integrated.
+
+\subsection{Packet Based Approach}
+Sending bytes between the devices work
+
+%\lstinputlistinglanguage=C{chapters/research/package_test/simple.c}
+The packet is made up of a struct containing bit length defs
+for each of data types we will be sending.
+
+This struct is then treated as an array and encoded using base64
+(decision matrix pending).
+
+The encoded data is then sent via SPI to the ESP32 which acts
+as a SPI slave that simply receives any amount of data
+(less than 1024 bytes long) and transmits it once it receives
+the end of line character (`\\n').
+This character is hard coded but it also required to be present
+for the MATLAB code to function so it is consistent across both.
+
+The challenge now is that the data needs to be decoded in MATLAB.
+The following code can be used in a callback function to convert
+the received encoded data into an array of byte values.
+
+\begin{lstlisting}[language=MATLAB]
+base64 = readline(src);
+decoded = transpose(matlab.net.base64decode(char(base64)));
+\end{lstlisting}
+
+The decoded data can then be converted into the correct format
+using the following code
+
+\begin{lstlisting}[language=MATLAB]
+x = uint8(decoded(9:12));
+disp(typecast(x, 'uint32'))
+\end{lstlisting}
+
+The issue here is that there is a lot of hardcoded values
+in both the index of the data and the conversion format.
+One solution is to remove all bit length defs and send everything
+as 32-bit words. The tradeoff is that it is potentially quite wasteful.
+For instance, if we only needed to send 8-bits, we are essentially
+sending 24-bits of unnecessary data that will all be 0s.
+
+We ideally want to send a header at the start of transmission that
+contains all the information regarding size of data, etc.
+Then send a packet identifier so the system knows what data to expect.
+
+What would be good is to have all the identifiers be bitwise OR'd
+with each other so that the MATLAB code can just look at the identifier
+bit and can tell which pieces of data are present.
+This is better than the alternative of having seperate identifiers for
+every combination of data because then we can just define everything once.
+For example our header could look like the following:
+
+\begin{lstlisting}[language=C]
+IDENTIFIER = 0b10011000
+\end{lstlisting}
+
+which might correspond to ECG data, RESP data, and EMG data.
+The definitions for those data masks could be as follows:
+
+\begin{lstlisting}[language=C]
+ECG_MASK = 0b10000000
+RSP_MASK = 0b00010000
+EMG_MASK = 0b00001000
+\end{lstlisting}
+
+We could see from this that the identifier contains the corresponding
+masks and use it to extract the data.
+We could then say that the highest mask takes prescience.
+So, in this example the ECG data would come first since its mask's bit
+is the highest in the identifier.
+
+Then, all we need to define is that the mask bit corresponds to x amount
+of data. So that once we see a specific mask bit is set we can
+automatically align the data.
+
+I think its best to do this first manually by having all the masks
+and sizes set. Then, once that is working move to having a config packet
+that sets the masks and sizes dynamically.
+The goal is to keep the definitions in once place and propagate it
+through the system.
+
+Wrote a debug routine to print arbritary text to MATLAB via SPI/TCP.
+
+\begin{lstlisting}[language=C]
+void debug(const char *fmt, ...) {
+    va_list args;
+    char str[1024];
+
+    va_start(args, fmt);
+    vsprintf(str, fmt, args);
+    va_end(args);
+
+    write_packet(str, strlen(str));
+}
+\end{lstlisting}
+
+Then can receive in MATLAB using
+
+\begin{lstlisting}[language=MATLAB]
+y = char(decoded);
+disp(y)
+\end{lstlisting}
+
 
 \section{Testing and Validation}
 What tests were performed and how that validates the system.
