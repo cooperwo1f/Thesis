@@ -4,7 +4,7 @@ a PIC32 and a ESP32, as well as 24-bit ADC for taking biosignal measurements.
 
 At the middle of the year when the project was handed over,
 the ESP32 had been programmed to connect to WiFi, but was only programming intermittently,
-and the PIC32 had barebones programming on it to enable the ESP32 via the enable pin.
+and the PIC32 had bare-bones programming on it to enable the ESP32 via the enable pin.
 
 The only other contributions were from Craig Dawson who supplied information and code for programming the PIC32,
 as well as attaching wires to specific pins of the PIC32, allowing it to be probed using an oscilloscope.
@@ -12,13 +12,13 @@ as well as attaching wires to specific pins of the PIC32, allowing it to be prob
 
 \section{ESP32}
 The ESP32 on the board is the \textbf{ESP MODEL}.
-This device is used as a wireless brige between the on-body device and the off-body PC.
+This device is used as a wireless bridge between the on-body device and the off-body PC.
 It connects to the PIC32 through a Serial Peripheral Interface (SPI) bus.
-It is programmed using the Arduino software enviroment.
+It is programmed using the Arduino software environment.
 
 \subsection{Power}
 As stated, the ESP32 was only programming intermittently.
-To determine what the cause of this unwanted behaviour was,
+To determine what the cause of this unwanted behavior was,
 the board was tested in the following states in order to measure changes in how the ESP32 programmed.
 
 \begin{itemize}
@@ -37,13 +37,13 @@ The additional power requirement is not due to any external limitations with the
 as the current draw that the supply is measuring is significantly less than the current limit.
 Additionally, there is a reduction in current draw from the first supply once the additional power supply is added.
 This means that the load is being shared between the two supplies,
-as opposed to the first supply being at its max and the second supply provided neccessary additional power.
+as opposed to the first supply being at its max and the second supply provided necessary additional power.
 
 What his means more broadly is that the problem with programming the device comes from the power distribution of the on-body device.
 This can be further verified by measuring the voltage at points on the on-body device.
 All of the ICs on the device operate at a 3.3V power level.
 When measuring the voltage at the input pins of the ICs and at headers around the board, the voltage appears to be closer to 2.6V.
-As we add addtional voltage connections, we can observe the voltage rise.
+As we add additional voltage connections, we can observe the voltage rise.
 Although the voltage does not reach 3.3V, the increase in voltage appears to be enough for the ICs to remain powered on.
 This appears to be because the power traces on the board are not wide enough.
 Because of this, the traces have significant resistance which causes a voltage drop to occur across them once the higher IC currents begin to flow.
@@ -54,7 +54,7 @@ This is because the ESP32 must be put into programming mode by holding down the 
 So, even in instances when the device has been succesfully put into this mode,
 the device reset caused by the brownout detector reverts it out of this mode.
 
-Once the power supply was supplimented with additional power supplies, this issue became less problematic.
+Once the power supply was supplemented with additional power supplies, this issue became less problematic.
 However, an additional issues arose as the ESP32 has to be placed into programming mode as it is powered.
 With the addition of these power supplies, there is coordination required in order to get it into this mode.
 Since the power is also required to keep the ESP32 from resetting, all of the supplies need to be disconnected and reconnected at the same time,
@@ -74,7 +74,7 @@ When compared to the alternative, Over-The-Air (OTA) programming has a number of
         \item The device can be programmed without a physical connection to a PC.
 \end{itemize}
 
-The downsides to this programming mode is that it adds additional compilation time, as well as runtime time \textbf{?}.
+The downsides to this programming mode is that it adds additional compilation time, as well as run-time time \textbf{?}.
 However, the compilation time is already in the range of 40 to 50 seconds, and the addition is less than 5 seconds.
 Considering these benefits and drawbacks, it was determined that this programming mode should be implemented.
 
@@ -129,7 +129,7 @@ the ESP32 will need to be programmed using the original hardware method.
 The PIC32 on the board is the PIC32MX775F512H.
 It connects to sensors, the 24-bit ADC, and the ESP32.
 It is the main processor on the on-body device and it is programmed in C using MPLAB X v5.00 with an ICD 3.
-The ICD 3 must be supplying 3.3V to on-body device in order for the PIC32 to be programmed succesfully.
+The ICD 3 must be supplying 3.3V to on-body device in order for the PIC32 to be programmed successfully.
 
 \subsection{Programming Configuration}
 The board designed by Tran \textbf{(REFERENCE HERE)} was designed in 2021.
@@ -182,6 +182,12 @@ because the delay relies on the system frequency to calculate the desired amount
 
 With the system clock frequency set correctly, debugging works on the device and the CPU can be halted and stepped through instructions as the program is running.
 
+\textbf{NEED TO INCLUDE THIS SOMEWHERE BUT PROBABLY NOT HERE OR LIKE THIS}
+Used scope to measure space between pulses then set a specific pulse delay.
+I think previously the delay number was overflowing potentially because it was so large.
+Potentially the delay was way too short and the timing wasn't correct.
+
+
 \subsection{ESP32 Control}
 The ESP32 is controlled by the PIC32 in two ways.
 
@@ -225,7 +231,7 @@ When read from, data that has been received by the SPI peripheral is taken from 
 Between these two operations the processor waits for the SPITBE status flag to be set.
 This flag corresponds to the transmission buffer being empty, and is set once transmission has been completed and data has been received.
 
-Additionally, a delay is required between SPI writes in order to stop data from becomming corrupt.
+Additionally, a delay is required between SPI writes in order to stop data from becoming corrupt.
 This delay was embedded into the low-level driver to make eventual performance optimisation centralized,
 since this delay is a clear cost to performance and by far the cause of the most communication slowdown.
 This delay is most likely necessary due to the operation of the SPI chip select line.
@@ -241,7 +247,7 @@ However, since the on-body device uses multiple microcontrollers communicating v
 one of these devices needs to act as a slave.
 Since the PIC32 is what communicates to the sensors, and the ESP32 only acts as a wireless transmitter,
 the PIC32 was configured as the SPI master, leaving the ESP32 as an SPI slave.
-There no official support for this in the native development enviroment, so either a custom or third party library must be used.
+There no official support for this in the native development environment, so either a custom or third party library must be used.
 In the interest of getting as much of the project functional as possible, it was decided that a third party library would be used \textbf{DECISION MATRIX?}.
 However, there are potential peformance improvements that could be achieved if a custom library was used, such as reducing the PIC transmission delays,
 so it is recommended that this option is looked into in the future.
@@ -251,7 +257,7 @@ This library is based on the official driver from the manufacture~\ref{https://d
 
 How do I describe my workarounds in order to get this to work aside from just saying that that's what I did?
 SPI implemented using task based DMA receiving.
-Tasks run in seperate threads, which frees up main thread to only process OTA updates.
+Tasks run in separate threads, which frees up main thread to only process OTA updates.
 One task runs continously waiting for SPI transmission~\autoref{code:esp_spi}.
 
 \begin{lstlisting}[language=C++,caption={ESP32 code for receiving SPI data}\label{code:esp_spi}]
@@ -304,9 +310,9 @@ This implies that the ESP32 was not able to receive 32-bits, and instead was jus
 However, if the SPI peripheral of the PIC32 was put into 8-bit mode (and all respective code changed to fit that mode),
 the ESP32 would receive nothing.
 So, the ESP32 required the PIC32 to send 32 SPI clock pulses but would only receive the first 8 data bits.
-This same behaviour was also present when using a task based approach or a polling approach and when DMA was or was not in use.
+This same behavior was also present when using a task based approach or a polling approach and when DMA was or was not in use.
 It is a substantial issue because it adds a 75\% overhead to the communication system.
-This, and the required delay in the low-level driver, are the primary candidates for future optimisations.
+This, and the required delay in the low-level driver, are the primary candidates for future optimizations.
 
 However, despite these performance issues, the drivers function together.
 Allowing abritary bytes to be shared between the two devices.
@@ -322,238 +328,159 @@ Like the PIC32, the schematic for the ADS1294R were slightly different to what w
 The schematic showed the devices as an ADS1298R, which is the 8 channel version of the device.
 This is significant because the device requires a specific number of SPI clock pulses to be sent that correlates to the number of channels on the device.
 So sending the wrong number of clock pulses will generate undesired results.
-Additionally, the device ID is different which can cause some confusion when intially trying to configure the device.
+Additionally, the device ID is different which can cause some confusion when initially trying to configure the device.
 
-\subsection{SPI}
+\subsection{Startup Procedure}
+The startup procedure of the device is shown in~\autoref{fig:ads_startup}.
+When implementing this startup procedure, a similar SPI driver to what was seen in~\autoref{code:spi_driver} was used.
+The key difference is that a higher delay was used for testing to ensure communication was well below data sheet limitations.
+When trying to follow this procedure, there were a number of key differences between what was expected and what was measured.
+It appeared that no matter what command was sent, the response was always the binary number \(01100000\).
+The data sheet specified responses for different registers, but regardless of that the response was always the same.
+The device also did not appear to respond to any two byte commands.
+However, the device did respond to single byte commands.
 
+The single byte commands were verified by monitoring the state of the data ready pin.
+Since this pin was connected to the PIC and the PIC has general purpose test points on a number of pins,
+the read value of the data ready pin can be written to one of the test points.
+This effectively `passes through' the state of the pin.
+The caveat being that any delays to the PIC will cause a delay between the data ready value and the test point.
+As well as that it strips the signal of all information aside from if it has crossed the PIC's logic threshold.
+However, these limitations do not stop the device \textbf{?} from providing important insight.
+Using an oscilloscope connected to the `pass through' test point, it is shown that the data ready pin is continually asserted.
+This changes after calling single byte commands that change the state of the ADS1294R.
+For example, if the reset command is continually send, the data ready pin will never be asserted,
+once the command stops being sent, the data ready pin is reasserted.
+Similarly, if the standby or stop commands are sent, the pin is not asserted until the respective wakeup or start commands are sent.
+The exact same behaviour is observed when the physical reset pin is held down, or when the start pin is asserted by the PIC.
+What this says is that the device is powered and the transmit side of the SPI bus is connected correctly.
+Since the SPI binary response is always \(01100000\), it can be assumed that the receive side of the SPI bus is also connected correctly.
+This is because the response does not change and is both non-zero and also not all ones.
+If either of those were true, the SPI bus could be picking up noise, or the receive pin may not be getting asserted.
+But because of this response it must be being controlled by the ADS1294R SPI module,
+since there is no other part of that device that is connected to the SPI clock and the response is the same even at higher and lower SPI clock speeds.
 
-Also appears to be additional connection from nDRDY to DGND with some capacitors.
+As the SPI hardware is assumed to be connected correctly, and the low-level SPI driver is confirmed to work with the ESP32,
+the fault is assumed to be in the SPI configuration and startup procedure on the PIC.
+Changing the clock polarity or clock phase causes the single byte commands to fail.
+Moreover, changing the SPI interface off of 8-bit mode to 32-bit or 16-bit mode also caused the commands to fail.
+The only change that could be made was the data sampling time, as this effected nothing to do with the transmission.
+This change caused the received bits to change position,
+but they were still not correct and different commands still caused the device to respond with the same response each time.
+Therefore, the place in the program that was most widely explored was the code for the startup procedure.
 
-Not 100\% sure if this is actually happening though because only image of PCB design
-low res screenshot of only top side of board. Very hard to follow traces.
-As far as I can tell it seems reasonable that each trace routed from the PIC to the ADS
-is correct. Not really possible to check as it is a ZXG package (basically a BGA package).
-
-Also pin 43 of the PIC is connected to DOUT which according to the datasheet of the PIC
-is actually the SPI chip select pin not the data input pin.
-
-Might have to write a custom driver that just pulls whatever pin the actual chip select
-is connected to low, writes whatever the equivalent SCK pin is high and write/reads
-the corresponding SDO and SDI pin manually.
-
-Not sure if any of this is actually managable anyway because the reset switch
-is a push button and doesn't appear to have any way of switching it via the PIC.
-
-Can't even really tell where the reset pin goes because it is grounded to the sleve of
-the 3.5mm jack?!? Whatever is routed to the switch is on the underside of the board
-that I don't have access to.
-
-Currently trying to change all the configurations to see if any combinations work better.
-If this doesn't work I can look at the actual altium schematics I got from Kenneth.
-Thinking first I'll just try and get the actual ID from the chip
-since it is easy to verify.
-Going to play around with the driver, add delays between reads and writes and try different
-SPI configs to see if anything makes it respond.
-Also will try same thing after physically pressing reset switch because maybe it needs
-hardware reset.
-
-My scope probe wasn't working because of the x10 setting on the probe was x1.
-I actually have managed to get something out of the ID register.
-
-It should be    11010000
-It actually is  01100000
-
-This was gotten by setting SPI bits SMP = 0, CKE = 1, CKP = 0, and pressing
-the reset button for the chip while using the scope to send a signal at the moment it
-would have to be reset in software.
-Managed to repeat this at least one more time. Attempting without pressing hardware reset.
-Still works without hardware switch being pressed. Not correct but better than nothing.
-Only thing that I changed was using the scope to correctly set the delay constant.
-
-Used scope to measure space between pulses then set a specific pulse delay.
-I think previously the delay number was overflowing potentially because it was so large.
-Potentially the delay was way too short and the timing wasn't correct.
-
-Can get 11000000 if I set SMP = 1
-Still missing bit 4 which should be 1 no matter what.
-Trying without hardware reset. Still works.
-
-Setting CKP causes ID to be 0, so that should 100\% be reset.
-
-Resetting it and running again causes ID to be 0
-Pressing reset while it's running fixes the issue.
-Still not what it 100\% should be but it's close.
-
-Increasing the delay amount did not change anything.
-Seems like hardware reset can be pressed midrun and it recovers nicely
-
-Without delays it often does not read correctly.
-Going to add a single delay in the SPI write function to set max speed.
-
-Going to reduce the delays in the init function. Everything seems to work fine.
-Going to try and remove them completely. Seems to work correctly still.
-Appears that the singular delay in the SPI write function was enough and nothing else
-needs it now. Probably good to do this with the ESP SPI write so that the delays are
-only in a single place and can be easily optimised.
-
-Added a substantial amount of extra delay to both to guarantee consistency, can easily
-be optimised later.
-
-Changing SPI3BRG as well to see if that makes any kind of difference.
-Seems like it can be about any value and it still works the same.
-Calculations say it should be greater than 2 so I'll set it to 4 for safety.
-However, still works without propogating errors with a value of 1 which
-should be too fast.
-
-Wondering if the GPIO init I am doing has an effect. Turning it off causes ID to be 0.
-Which is good because it means that I am actually doing something.
-
-Going to go through init function and see what turning various things on/off
-causes the system to do.
-`CLK\_SEL = 0' causes the chip to stop responding.
-Not writing SDATAC doesn't appear to change anything but that could be because I'm not
-doing anything that needs registers set.
-`START\_PIN = 0' causes chip to stop responding.
-
-Ok now that I have a baseline that I can consistenly get to I'm going to try and do more.
-
-
-\subsection{Reading Data}
-When reading data it doesn't seem like the DRDY pin ever actually goes low.
-Even when not sending read data continuous it is always high.
-Not really sure if I can trust this though because the pin isn't exposed
-So I'm setting a test point high if it is read high by the microcontroller and it may
-just be staying high because by the time it can poll again it has already read all the data
-and thus the chip is ready to put more data out.
-
-Going to see what happens when I try and read without setting RDATAC.
-Ok so issue now is that I am always reading 11000000 even when not reading the ID.
-
-This is really strange to me because it should be shorted so reading 0.
-Wonder if that also means that the ID I was reading is not actually correct since it wasn't
-exactly what it should have been anyway and it matches what the chip sends continuously.
-
-From my calculations I am reading 15 bytes which is 120 bits which I belive is correct.
-If I don't short the input it is still 11000000
-
-Ok so something definitly not right because even once read a few bytes the `DRDY'
-pin is still high when it should be low.
-
-It's strange because the DRDY pin is active low, in software I am checking `DRDY\_PIN == 0'
-which made me think that maybe the chip just isn't on at all hence why I'm always seeing
-`data\_ready()' as true.
-But this isn't the case since it becomes false if I hold down the reset pin.
-Which means the physical pin is being pulled high when the chip is put into reset which
-seems super strange to me because I would assume everything would just go to 0.
-At least in this case I can confirm that it is actually working.
-
-It seems wrong that sending the stop data read continuous command doesn't stop the chip
-from setting it's data ready pin. Not super logical to me because shouldn't that only be
-true when the data is continuously being streamed.
-
-I think the fact I am getting 192 (AKA 11000000) all the time, probably means that all the
-register writes I am doing are not actually correct. What I should do I think is go back
-to the ID register and attempt to get that to send correctly.
-
-I am not entirely sure where I should start because it seems like this should be working.
-I'm going to go back to the SPI config and see what I can maybe do.
-
-Also might be worth looking at software libaries for Arduino to see what they do in say
-a simple ID test script.
-Maybe there is something here I am missing that is really obvious.
-
-I think it is the power-on timing. Most likely due to hte lack of /RESET pulse since
-that was never connected to the PIC.
-
-Considering that, I think it's fair to assume that the timings may still be too short.
-Might be worth looking at existing Arduino library for how they setup their SPI.
-Also worth looking at schematics to verify there weren't any revision changes with how
-the chip RESET is connected (although I doubt there would be).
-
-Looking at presumably functional Arduino library:
+\textbf{SPI SETUP IS AS SHOWN}
 clock polarity 0, clock phase 1, output edge rising, data capture falling
 
-What this actually means:
-Idles on logic low, data transmission from clock idle to clock active,
-data shifted out on rising clock edge, data sampled on falling clock edge
+The most obvious difference is that the startup procedure suggests using the hardware reset,
+but that pin is tied to a physical switch instead of directly connected to the PIC.
+Because of this, there is no way to automatically hardware reset the device in software,
+so the reset has previously been achieved by sending the reset command.
+To achieve a hardware reset, a long delay was added to the startup sequence so that the physical switch could be pressed at the correct point.
+To aid with the timing, one of the test points was also driven high at the start of this timing window and low once the window had passed.
+Then, using an oscilloscope, the ADS1294R could be hardware reset at the correct point in the boot-up process.
+This unfortunately did not solve the issue and the device still maintained the same issue as before.
 
-\textbf{ADDITIONALLY}: Data is MSB first with a datarate of 4,000,000 (AKA 4MHz)
+Next, the register read and register write functions were investigated.
+Since we had verified that the low-level driver was functional, and that same driver handled both the reading and writing,
+it was unlikely that this was the issue, as there was nothing about that driver that could be changed \textbf{ELABORATE}.
 
-Also just realised it doesn't actually matter what I set the baudrate generator to because
-the system clock is 5Mhz so it will literally always be able to keep up.
+The code for writing to the register is shown in~\autoref{code:ads_reg_write}.
+
+\begin{lstlisting}[language=C, caption={PIC32 code for writing ADS1294R register}\label{code:ads_reg_write}]
+  void write_register(uint8_t reg, uint8_t data) {
+    static uint8_t write_register_cmd = 0x40;
+    static uint8_t write_register_mask = 0x1F;
+
+    uint8_t first_byte = write_register_cmd | (reg & write_register_mask);
+    uint8_t second_byte = 0x00; // only ever write a single register
+
+    ADS1294R_write(first_byte);
+    ADS1294R_write(second_byte);
+    ADS1294R_write(data);
+  }
+\end{lstlisting}
+
+As the write commands were verified to be working, the changes to this function were around the register command byte,
+register mask byte, and the addition of delays between writing the bytes.
+However, these changes did not have any effect on the communication issues with the device.
+We then turned our attention to the read register function shown in~\autoref{code:ads_reg_read}
+
+\begin{lstlisting}[language=C, caption={PIC32 code for reading ADS1294R register}\label{code:ads_reg_read}]
+  uint8_t read_register(uint8_t reg) {
+    static uint8_t read_register_cmd = 0x20;
+    static uint8_t read_register_mask = 0x1F;
+
+    uint8_t first_byte = read_register_cmd | (reg & read_register_mask);
+    uint8_t second_byte = 0x00; // only ever read a single register
+
+    ADS1294R_write(first_byte);
+    ADS1294R_write(second_byte);
+    return ADS1294R_read();
+  }
+\end{lstlisting}
+
+Similar changes and additions were added to this function, with the same result of the communication not working correctly.
+
+At this point all of the command and register definition were double checked and
+the register read and write functions were stepped through to verify that the bytes bit by bit, they were all correct.
+
+Since all logical software changes had been made and the system was still not functional,
+it was decided that the SPI pins should be broken out so the commuincation could be analyzed using an oscilloscope.
+Craig Dawson from engineering services helped in this aspect of the project,
+since the pitch of the pins that needed to be soldered required specialised tools and expertise.
+\textbf{ADD FIGURE OF BOARD WITH JUMPERS}
+
+A four channel oscilloscope could then be used to analyze the SPI communication.
+What was eventually discovered was that the chip select pin was not being asserted for long enough.~\textbf{MAYBE FIGURE HERE OF SCOPE}
+Since the chip select pin was being controlled by the PIC SPI module,
+it was being automatically driven low during transmission and then high again after transmission completed.
+This would have been the desired behaviour, and it indeed was for single byte commands,
+but for multi-byte commands the chip select line needed to stay asserted until all of the bytes had been transferred and received.
+
+The solution to this is to disable chip select control on the SPI module and manually set and reset the pin in software.
+To acomplish this, the code was changed as shown in~\autoref{code:ads_cmd_write} and~\autoref{code:ads_updated_reg_funcs}
+
+\begin{lstlisting}[language=C, caption={PIC32 code for writing single-byte commands to the ADS1294R}\label{code:ads_cmd_write}]
+  void write_cmd(uint8_t cmd) {
+    CS_PIN = 0;   // Chip select pin is active low
+    ADS1294R_write(cmd);
+    CS_PIN = 1;   // Chip select pin in inactive high
+  }
+\end{lstlisting}
 
 
-\subsection{Inconsistencies}
-Interestingly enough writing START and STOP appears to work.
-So the actual writing to SPI seems to be correct.
+\begin{lstlisting}[language=C, caption={PIC32 code for writing single-byte commands to the ADS1294R}\label{code:ads_updated_reg_funcs}]
+  uint8_t read_register(uint8_t reg) {
+    static uint8_t read_register_cmd = 0x20;
+    static uint8_t read_register_mask = 0x1F;
 
-Very weird because it seems like there are two versions of the design.
-The one that got made appears to be older and worse. So not really sure what's going on.
-Perhaps this is the beginning of a revision 2?
-But I also cannot find the altium files for it, only a single pdf remains.
-Shame because the newer one has a bunch of LEDs on it that would make this way easier.
+    uint8_t first_byte = read_register_cmd | (reg & read_register_mask);
+    uint8_t second_byte = 0x00; // only ever read a single register
 
-So what we know is that write must work. As writing START and STOP commands have
-an effect.
-What is currently unknown is if the reading and writing register commands work correctly.
-I really don't see how they wouldn't because I've hand checked the bits during debugging.
-Really the only thing I can think at this stage is that maybe the PIC is sending in 32-bit
-mode. That doesn't really make sense since it's configured to 8-bit mode but maybe it
-still sends extra or something (this would be very silly).
+    CS_PIN = 0;
+    ADS1294R_write(first_byte);
+    ADS1294R_write(second_byte);
+    ADS1294R_read();
+    uint8_t ret = ADS1294R_read();
+    CS_PIN = 1;
 
-I cannot think of anything else to check short of soldering to the pins and checking
-the physical signals that are being send both ways. I'm sure if I did that I would be able
-to verify it almost immediately... Should definitly bring bodge wire on Tuesday and make
-use of the good soldering irons, flux, microscopes, and nice oscilloscopes at uni.
+    return ret;
+  }
 
-Other than that it could also be the power on cycle needs specific lines held low/high
-and I just do not have digital access to those pins.
+  void write_register(uint8_t reg, uint8_t data) {
+    static uint8_t write_register_cmd = 0x40;
+    static uint8_t write_register_mask = 0x1F;
 
-Or worst case the entire board has been designed so badly that the chip is having weird
-power issues. Looking at the altium board files it definitly does not look great.
-At least there is a lot to include in ADC challenges for my results.
+    uint8_t first_byte = write_register_cmd | (reg & write_register_mask);
+    uint8_t second_byte = 0x00; // only ever write a single register
 
+    CS_PIN = 0;
+    ADS1294R_write(first_byte);
+    ADS1294R_write(second_byte);
+    ADS1294R_write(data);
+    CS_PIN = 1;
+  }
+\end{lstlisting}
 
-The status word that I am expecting contains the following
-`1100 LOFF\_STATP[7:0] LOFF\_STATN[7:0] GPIO[7:4]'
-So maybe the received 11000000 could be the beginning of that status word but then I
-am not reading any more or something?
-
-GPIO register looks like `DATA[4:1] CONTROL[4:1]' with 0 being outputs and 1 being inputs
-for the control section
-
-So I am not able to write the register. I think at this stage what must be wrong is my
-register writing/reading.
-I think the actual write commands are working
-because if I write sleep, wakeup, start, stop, or reset
-the chip has the response I would expect it to have.
-I am not able to verify SDATAC or RDATAC because the data I am then reading is wrong.
-It also doesn't seem to stop it from giving me data if I send either of them.
-Maybe I should try RDATA and try to just do a simple read see if that makes any difference.
-
-Otherwise, I think the write byte works so I don't see why writing the read/write register
-command then the address of the register is not working.
-
-It could also be that the SDATAC, RDATAC, and RDATA commands do not work for some reason
-This would mean that all my attempts to read and write registers is futile because
-the chip is not going to respond to those commands as it boots into RDATAC mode.
-But even so the chip does not give any readings, just 192 (AKA 11000000) continously
-so I have no idea what that is supposed to mean.
-
-
-\subsection{Solution}
-Ok so the issue actually came from the CS line. The line was being driven active for each
-command but because the ADC had multi-byte commands it was expecting the CS line to stay
-active for the entire duration.
-What was instead happening was the CS line was going inactive
-and causing the ADC to reset mid command which meant it was only responding to single byte
-command hence why RESET, STANDBY, WAKEUP, etc were working correctly.
-
-Issue now is my driver has an issue because I'm reading all 0s for the
-ID but on the scope I can see the response is correct.
-
-Issue was that the SPI buffer holds the previous transmitted value so need to clear it once
-before reading again to get actual value.
-
-Also need to make sure to use special `write\_cmd()' function as it contains the neccessary
-chip select setting/resetting and it will not respond to commands otherwise.
+With these changes, communication with the device is established and the device ID can be read succesfully.
