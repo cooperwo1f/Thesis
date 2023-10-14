@@ -30,7 +30,7 @@ the board was tested in the following states in order to measure changes in how 
         \item All the same boot select switch options were repeated with the additional power being supplied.
 \end{itemize}
 
-From this testing, it was discovered that the ESP32 programs succesfully when it is being adequately powered
+From this testing, it was discovered that the ESP32 programs successfully when it is being adequately powered
 and the boot select switch is pressed as the device is being powered on.
 
 The additional power requirement is not due to any external limitations with the power supply,
@@ -51,7 +51,7 @@ Because of this, the traces have significant resistance which causes a voltage d
 For the ESP32, the lower voltage causes a brownout detection feature of the device to activate, causing it to reset.
 The effect that has on the device is that it will reset itself out of programming mode, causing the programming to fail.
 This is because the ESP32 must be put into programming mode by holding down the boot select switch while the device is initially powered on.
-So, even in instances when the device has been succesfully put into this mode,
+So, even in instances when the device has been successfully put into this mode,
 the device reset caused by the brownout detector reverts it out of this mode.
 
 Once the power supply was supplemented with additional power supplies, this issue became less problematic.
@@ -80,7 +80,7 @@ Considering these benefits and drawbacks, it was determined that this programmin
 
 The first step in implementing this feature was to connect the device to the network.
 The ESP32 is programmed using the Arduino IDE, which contains a WiFi library for the ESP32.
-The code for simple WiFi device bringout is shown in~\autoref{code:wifi}.
+The code for simple WiFi device bring-up is shown in~\autoref{code:wifi}.
 
 \begin{lstlisting}[language=C++,caption={Arduino code for connected ESP32 to WiFi}\label{code:wifi}]
   #include <WiFi.h>
@@ -210,7 +210,7 @@ Without this assertion, the ESP32 is unresponsive to programming and does not pe
 The other form of control is through the respective SPI lines of the two microcontrollers.
 The SPI driver for the PIC32 is simple, as that device acts as the `master', which is the typical mode for a microcontroller to operate in.
 The PIC32 is configured as a 32-bit master operating in SPI mode 0~\ref{https://www.sciencedirect.com/science/article/abs/pii/B9780123914903000047}
-The boardrate generator value has been calculated using the equation \(BRG = (F_{PB} / 2 \times F_{SCK}) - 1\). \textbf{CALCULATE THIS: BRG = 50}.
+The baudrate generator value has been calculated using the equation \(BRG = (F_{PB} / 2 \times F_{SCK}) - 1\). \textbf{CALCULATE THIS: BRG = 50}.
 Finally, the low-level SPI driver is implemented in~\autoref{code:spi_driver}
 
 \begin{lstlisting}[language=C,caption={PIC32 low-level SPI driver}\label{code:spi_driver}]
@@ -232,7 +232,7 @@ Between these two operations the processor waits for the SPITBE status flag to b
 This flag corresponds to the transmission buffer being empty, and is set once transmission has been completed and data has been received.
 
 Additionally, a delay is required between SPI writes in order to stop data from becoming corrupt.
-This delay was embedded into the low-level driver to make eventual performance optimisation centralized,
+This delay was embedded into the low-level driver to make eventual performance optimization centralized,
 since this delay is a clear cost to performance and by far the cause of the most communication slowdown.
 This delay is most likely necessary due to the operation of the SPI chip select line.
 Specifically, the way the chip select line does not reset between SPI transmissions without adequate delays between writes.
@@ -249,7 +249,7 @@ Since the PIC32 is what communicates to the sensors, and the ESP32 only acts as 
 the PIC32 was configured as the SPI master, leaving the ESP32 as an SPI slave.
 There no official support for this in the native development environment, so either a custom or third party library must be used.
 In the interest of getting as much of the project functional as possible, it was decided that a third party library would be used \textbf{DECISION MATRIX?}.
-However, there are potential peformance improvements that could be achieved if a custom library was used, such as reducing the PIC transmission delays,
+However, there are potential performance improvements that could be achieved if a custom library was used, such as reducing the PIC transmission delays,
 so it is recommended that this option is looked into in the future.
 
 The library that was used is the ESP32DMASPI~\ref{https://github.com/hideakitai/ESP32DMASPI} library.
@@ -258,7 +258,7 @@ This library is based on the official driver from the manufacture~\ref{https://d
 How do I describe my workarounds in order to get this to work aside from just saying that that's what I did?
 SPI implemented using task based DMA receiving.
 Tasks run in separate threads, which frees up main thread to only process OTA updates.
-One task runs continously waiting for SPI transmission~\autoref{code:esp_spi}.
+One task runs continuously waiting for SPI transmission~\autoref{code:esp_spi}.
 
 \begin{lstlisting}[language=C++,caption={ESP32 code for receiving SPI data}\label{code:esp_spi}]
   void task_wait_spi(void* pvParameters) {
@@ -270,7 +270,7 @@ One task runs continously waiting for SPI transmission~\autoref{code:esp_spi}.
   }
 \end{lstlisting}
 
-Once data has been received, a different task handles processing the incomming data~\autoref{code:esp_spi_processing}.
+Once data has been received, a different task handles processing the incoming data~\autoref{code:esp_spi_processing}.
 
 \begin{lstlisting}[language=C++,caption={ESP32 code for processing SPI data}\label{code:esp_spi_processing}]
   void task_process_buffer(void* pvParameters) {
@@ -352,7 +352,7 @@ This changes after calling single byte commands that change the state of the ADS
 For example, if the reset command is continually send, the data ready pin will never be asserted,
 once the command stops being sent, the data ready pin is reasserted.
 Similarly, if the standby or stop commands are sent, the pin is not asserted until the respective wakeup or start commands are sent.
-The exact same behaviour is observed when the physical reset pin is held down, or when the start pin is asserted by the PIC.
+The exact same behavior is observed when the physical reset pin is held down, or when the start pin is asserted by the PIC.
 What this says is that the device is powered and the transmit side of the SPI bus is connected correctly.
 Since the SPI binary response is always \(01100000\), it can be assumed that the receive side of the SPI bus is also connected correctly.
 This is because the response does not change and is both non-zero and also not all ones.
@@ -428,18 +428,18 @@ the register read and write functions were stepped through to verify that the by
 Since all logical software changes had been made and the system was still not functional,
 it was decided that the SPI pins should be broken out so the commuincation could be analyzed using an oscilloscope.
 Craig Dawson from engineering services helped in this aspect of the project,
-since the pitch of the pins that needed to be soldered required specialised tools and expertise.
+since the pitch of the pins that needed to be soldered required specialized tools and expertise.
 \textbf{ADD FIGURE OF BOARD WITH JUMPERS}
 
 A four channel oscilloscope could then be used to analyze the SPI communication.
 What was eventually discovered was that the chip select pin was not being asserted for long enough.~\textbf{MAYBE FIGURE HERE OF SCOPE}
 Since the chip select pin was being controlled by the PIC SPI module,
 it was being automatically driven low during transmission and then high again after transmission completed.
-This would have been the desired behaviour, and it indeed was for single byte commands,
+This would have been the desired behavior, and it indeed was for single byte commands,
 but for multi-byte commands the chip select line needed to stay asserted until all of the bytes had been transferred and received.
 
 The solution to this is to disable chip select control on the SPI module and manually set and reset the pin in software.
-To acomplish this, the code was changed as shown in~\autoref{code:ads_cmd_write} and~\autoref{code:ads_updated_reg_funcs}
+To accomplish this, the code was changed as shown in~\autoref{code:ads_cmd_write} and~\autoref{code:ads_updated_reg_funcs}
 
 \begin{lstlisting}[language=C, caption={PIC32 code for writing single-byte commands to the ADS1294R}\label{code:ads_cmd_write}]
   void write_cmd(uint8_t cmd) {
@@ -483,4 +483,4 @@ To acomplish this, the code was changed as shown in~\autoref{code:ads_cmd_write}
   }
 \end{lstlisting}
 
-With these changes, communication with the device is established and the device ID can be read succesfully.
+With these changes, communication with the device is established and the device ID can be read successfully.
