@@ -26,6 +26,11 @@ $(BUILD_DIR)/%.pdf: %.tex $(BIB_FILES) $(TEMPLATE_DIR)/* $(SUB_DIRS)/* | $(BUILD
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
+# Insert declaration page
+.PHONY: insert-declaration
+insert-declaration: all
+	pdftk A=$(BUILD_DIR)/thesis.pdf B=$(BUILD_DIR)/declaration-test.pdf cat A1 B1 A3-end output thesis-SIGNED.pdf
+
 # Clean the build directory
 .PHONY: clean
 clean:
