@@ -3,6 +3,7 @@
 For this project to be successful, it is necessary to fulfill various requirements.
 The requirements for this project are:
 
+% TODO: THIS LIST SUCKS NEED TO DO IT BETTER
 \begin{enumerate}
     \item The system must be composed of inexpensive parts
     \begin{enumerate}
@@ -29,33 +30,55 @@ The requirements for this project are:
 \subsection{Assumptions and Constraints}
 Assumptions:
 \begin{itemize}
-    \item The users of the system have basic knowledge of music theory and performance.
-    \item The system will be used in conjunction with a lighting console that maps all the fixture addresses correctly.
     \item The system will be used in an indoor environment with stable temperature and humidity.
     \item The performers will be able to wear biosignal sensors comfortably during their performance.
     \item The sweat from the performers will be mitigated to avoid short-circuiting the electrodes.
-    \item The system will be operated by a skilled technician during live performances.
+    \item The system will exist in a stable performative enviroment.
+        \begin{itemize}
+                \item The various audio visual elements of the performative enviroment are functional.
+                \item The system is being operated by skilled and knowledgable professionals.
+        \end{itemize}
 \end{itemize}
 
 Constraints:
 \begin{itemize}
     \item The total cost of the system cannot exceed \$600.
     \item The size and weight of the whole system must be compact enough to transport in a standard travel bag.
+        \begin{itemize}
+                \item The system must weigh less than 20kg.
+                \item The system must take up less than 50L.
+        \end{itemize}
     \item The size and weight of the on-body subsystem must be wearable for several hours without fatigue.
-    \item The system must be compatible with standard MIDI interfaces and protocols.
+        \begin{itemize}
+                \item The on-body element of the system must weigh less than 5kg.
+        \end{itemize}
+    \item The system must be compatible with a standard lighting protocol.
 \end{itemize}
 
-The given constraints are cost, size, weight, and compatibility.
-The cost is a constraint because the budget of the project is separate to the \$600 allocated limit.
-So, if the project goes over budget it may continue, but if it goes past the allocated limit, the project will not be able to continue.
-The size and weight are constraints because the project needs to be portable enough to effectively use.
-The system compatibility is a constraint because it is required for the system to correctly operate with other unknown systems.
+\subsection{Previous Work}
+This project is a continuation of the Music from Biosignals project.
+As such, a number of these objectives have already been fulfilled, and some hardware and software has been developed.
+The extent of these developments are as follows:
+
+\begin{itemize}
+        \item Hardware for an on-body device has been developed.
+        \begin{itemize}
+                \item The hardware has been successfully powered on.
+                \item Programmer communication with the microcontrollers has been established.
+                \item One of the microcontrollers has been connected to WiFi.
+        \end{itemize}
+        \item Software for the off-body PC has been written.
+        \begin{itemize}
+                \item a MATLAB script that generates music using a prerecorded ECG biosignal has been developed.
+        \end{itemize}
+\end{itemize}
 
 \subsection{Scope}
-In order to mitigate the risk of other concurrent projects running over scope, additional stretch goals have
-been added to the scope of this project. The stretch goals allow for increasing in scope
-while still strictly maintaining an achievable scope for this project.
-A breakdown of the scope of this project can be found in \autoref{tab:scope}, \autoref{tab:scope_stretch}, and \autoref{tab:scope_out}.
+Given this project outline and the previous project work.
+The scope of the project can be defined in~\autoref{tab:scope},~\autoref{tab:scope_stretch}, and~\autoref{tab:scope_out}.
+This scope contains stretch goals because some of the previous work had not been completed at the start of the project,
+as those students were finishing mid-year.
+Therefore, the strech goals exist to allow the necessary project flexibility to account for various outcomes of those student's projects.
 
 \begin{table}[!ht]
     \caption{Project in-scope list}\label{tab:scope}
