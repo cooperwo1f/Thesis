@@ -1,17 +1,17 @@
 \chapter{On-Body Device}
-The on-body device was developed by William Tran in 2021 and consists of two microcontrollers,
+The on-body device was developed by William Tran in 2022~\cite{Tran:2022} and consists of two microcontrollers,
 a PIC32 and a ESP32, as well as 24-bit ADC for taking biosignal measurements.
 
 At the middle of the year when the project was handed over,
 the ESP32 had been programmed to connect to WiFi, but was only programming intermittently,
-and the PIC32 had bare-bones programming on it to enable the ESP32 via the enable pin.
+and the PIC32 had bare-bones programming on it to enable the ESP32 via its enable pin.
 
 The only other contributions were from Craig Dawson who supplied information and code for programming the PIC32,
 as well as attaching wires to specific pins of the PIC32, allowing it to be probed using an oscilloscope.
 
 
 \section{ESP32}
-The ESP32 on the board is the \textbf{ESP MODEL}.
+The ESP32 on the board is the ESP32-WROOM-32D.
 This device is used as a wireless bridge between the on-body device and the off-body PC.
 It connects to the PIC32 through a Serial Peripheral Interface (SPI) bus.
 It is programmed using the Arduino software environment.
@@ -26,18 +26,18 @@ the board was tested in the following states in order to measure changes in how 
         \item The boot select switch was held for the extent of the programming cycle.
         \item The boot select switch was held until programming began.
         \item The boot select switch was held from when the device was powered on until programming ended.
-        \item The board was powered from a lab bench power supply as well as via USB through an ICD3.
+        \item The board was powered from a lab bench power supply as well as via USB through an ICD 3.
         \item All the same boot select switch options were repeated with the additional power being supplied.
 \end{itemize}
 
 From this testing, it was discovered that the ESP32 programs successfully when it is being adequately powered
 and the boot select switch is pressed as the device is being powered on.
 
-The additional power requirement is not due to any external limitations with the power supply,
-as the current draw that the supply is measuring is significantly less than the current limit.
+The additional power requirement is not due to any external limitations with the lab power supply,
+as the current draw that the supply is measuring is significantly less than the set current limit.
 Additionally, there is a reduction in current draw from the first supply once the additional power supply is added.
 This means that the load is being shared between the two supplies,
-as opposed to the first supply being at its max and the second supply provided necessary additional power.
+as opposed to the first supply being at its maximum output and the second supply providing necessary additional power.
 
 What his means more broadly is that the problem with programming the device comes from the power distribution of the on-body device.
 This can be further verified by measuring the voltage at points on the on-body device.
@@ -48,14 +48,15 @@ Although the voltage does not reach 3.3V, the increase in voltage appears to be 
 This appears to be because the power traces on the board are not wide enough.
 Because of this, the traces have significant resistance which causes a voltage drop to occur across them once the higher IC currents begin to flow.
 
-For the ESP32, the lower voltage causes a brownout detection feature of the device to activate, causing it to reset.
+For the ESP32, the lower voltage causes the brownout detection feature of the device to activate, causing it to reset.
+% TODO: WEIRD SENTENCE RE-READ AND FIX MAYBE?
 The effect that has on the device is that it will reset itself out of programming mode, causing the programming to fail.
 This is because the ESP32 must be put into programming mode by holding down the boot select switch while the device is initially powered on.
 So, even in instances when the device has been successfully put into this mode,
 the device reset caused by the brownout detector reverts it out of this mode.
 
 Once the power supply was supplemented with additional power supplies, this issue became less problematic.
-However, an additional issues arose as the ESP32 has to be placed into programming mode as it is powered.
+However, additional issues arose as the ESP32 has to be placed into programming mode as it is powered.
 With the addition of these power supplies, there is coordination required in order to get it into this mode.
 Since the power is also required to keep the ESP32 from resetting, all of the supplies need to be disconnected and reconnected at the same time,
 while the boot select switch is pressed.
@@ -65,8 +66,8 @@ For prototyping, this becomes extremely cumbersome because this process must be 
 As well as whenever the programming fails due to an unexpected reset.
 
 \subsection{Over-The-Air Programming}
-\ref{https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=5a31727b9b9e5f6a01f5f33a97f787f3db630b32}
-When compared to the alternative, Over-The-Air (OTA) programming has a number of benefits.
+Over-The-Air (OTA) programming is a technique used to program a device wirelessly~\cite{Quadri:2014}.
+When compared to the alternative, OTA programming has a number of benefits.
 
 \begin{itemize}
         \item The device can be programmed regardless of the boot mode.
@@ -74,8 +75,9 @@ When compared to the alternative, Over-The-Air (OTA) programming has a number of
         \item The device can be programmed without a physical connection to a PC.
 \end{itemize}
 
-The downsides to this programming mode is that it adds additional compilation time, as well as run-time time \textbf{?}.
-However, the compilation time is already in the range of 40 to 50 seconds, and the addition is less than 5 seconds.
+The downsides to this programming mode is that it adds additional compilation time, as well as minor overhead during runtime.
+However, the compilation time is already in the range of 40 to 50 seconds, and the addition is less than 5 seconds,
+and the runtime overhead can be mitigated by running OTA code in its own thread.
 Considering these benefits and drawbacks, it was determined that this programming mode should be implemented.
 
 The first step in implementing this feature was to connect the device to the network.
@@ -111,15 +113,33 @@ and calling ArduinoOTA.handle() in the primary loop of the program.
     String type;
 
     if (ArduinoOTA.getCommand() == U_FLASH)
-      type = ``sketch'';
+      type = `sketch';
     else // U_SPIFFS
-      type = ''filesystem'';
+      type = 'filesystem';
 
-  });
+      Serial.println(`Start updating ' + type);
+    })
+
+    .onEnd([]() {
+      Serial.println(`\nEnd');
+    })
+
+    .onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf('Progress: \%u\%\%\\r', (progress / (total / 100)));
+    })
+
+    .onError([](ota_error_t error) {
+      Serial.printf(`Error[\%u]: ', error);
+      if (error == OTA_AUTH_ERROR) Serial.println(`Auth Failed');
+      else if (error == OTA_BEGIN_ERROR) Serial.println('Begin Failed');
+      else if (error == OTA_CONNECT_ERROR) Serial.println(`Connect Failed');
+      else if (error == OTA_RECEIVE_ERROR) Serial.println('Receive Failed');
+      else if (error == OTA_END_ERROR) Serial.println(`End Failed');
+    });
 
 \end{lstlisting}
 
-After implementing these libraries, the ESP32 can be programmed using OTA by selecting the relevant device.
+After implementing these libraries, the ESP32 can be programmed using OTA by selecting the relevant device in the Arduino IDE.
 One caveat of this is that the OTA updates will only be pushed as long as the OTA handler is called.
 So, for instances where the ESP32 is in an infinite loop, or when there is a substantially long delay in the primary loop,
 the ESP32 will need to be programmed using the original hardware method.
@@ -132,8 +152,7 @@ It is the main processor on the on-body device and it is programmed in C using M
 The ICD 3 must be supplying 3.3V to on-body device in order for the PIC32 to be programmed successfully.
 
 \subsection{Programming Configuration}
-The board designed by Tran \textbf{(REFERENCE HERE)} was designed in 2021.
-When the board was being manufactured, there was a global supply chain issue \textbf{(REF?)}.
+When the board was being manufactured, there was a global supply chain issue, as mentioned in Tran's thesis~\cite{Tran:2022}.
 Because of this, the schematic design of the board was different to what was assembled on the board.
 This caused issues when programming the PIC32, because the specific model of PIC had changed.
 So, when the programmer connected to the device, it would read a different device ID from what was expected,
@@ -142,21 +161,21 @@ Updating the project to use the PIC32MX775F512H solved this programming issue.
 
 The other hurdle in programming the PIC32 was in the clock configuration.
 With incorrect clock configuration, the device still programs, but it is not able to be put into debug mode.
-Additionally, all intentional delays are based on the clock speed so it must be set correctly for the delays to be correct.
+Additionally, all delays that are added are based on the clock speed.
+So it must be set correctly for the delays to be correct.
 
-The clock configuration uses PLL~\ref{https://www.ijert.org/phase-locked-loop-a-review}.
+The clock configuration uses PLL~\cite{Maji:2016}.
 It has been configured with a input divider of 10, a multiplier of 16, and an output divider of 8.
-With a 16 MHz crystal, the system clock frequency becomes \textbf{CALCULATE}.
-\((16 MHz / 10 * 16) / 8 = 50 MHz\)
+With a 16 MHz crystal, the system clock frequency becomes \((16 MHz / 10 * 16) / 8 = 3.2 MHz\).
 
 The system clock frequency was verified by measuring the delay between pulses using an oscilloscope.
 The code for delays in the system is shown in~\autoref{code:delay}, and code for generating output pulses is shown in~\autoref{code:pulses}
 
 \begin{lstlisting}[language=C,caption={PIC32 code for adding delays in code execution (in microseconds)}\label{code:delay}]
   void delay_us(unsigned int us) {
-    us *= DELAY_CONST;              // DELAY_CONST = SYS_FREQ / 1000000 / 2
-    _CP0_SET_COUNT(0);              // Reset Core Timer
-    while (us > _CP0_GET_COUNT());  // Wait until Core Timer reaches desired number of clock ticks
+    us *= DELAY_CONST;
+    _CP0_SET_COUNT(0);
+    while (us > _CP0_GET_COUNT());
   }
 
   void delay(int ms) {
@@ -175,18 +194,20 @@ The code for delays in the system is shown in~\autoref{code:delay}, and code for
   }
 \end{lstlisting}
 
-The measured results for this are shown on the oscilloscope image seen in \textbf{(FIGURE OF SCOPE HERE)}
+The measured results for this are shown on the oscilloscope image seen in~\autoref{fig:pulse_delay}.
 This figure shows a 100 ms delay between pulses.
 This is exactly what the software delay has been set to, which verifies that the system clock frequency has been set correctly,
 because the delay relies on the system frequency to calculate the desired amount of clock ticks to wait.
+The equation for calculating the number of clock ticks is \(F_{sys} / 1000000 / 2\).
+% TODO: MAYBE WHY AND WHERE THIS EQUATION HAS COME FROM? ALSO HOW THE DELAY NEEDS TO BE A CONST INSTEAD OF CALCULATED DUE TO OVERFLOW ERROR
+
+\begin{figure}[!ht]
+  \caption{Oscilloscope measurement of 100ms delay between pulses}\label{fig:pulse_delay}
+  \centering
+  \includegraphics[width=1\columnwidth]{chapters/development/results/DELAY}
+\end{figure}
 
 With the system clock frequency set correctly, debugging works on the device and the CPU can be halted and stepped through instructions as the program is running.
-
-\textbf{NEED TO INCLUDE THIS SOMEWHERE BUT PROBABLY NOT HERE OR LIKE THIS}
-Used scope to measure space between pulses then set a specific pulse delay.
-I think previously the delay number was overflowing potentially because it was so large.
-Potentially the delay was way too short and the timing wasn't correct.
-
 
 \subsection{ESP32 Control}
 The ESP32 is controlled by the PIC32 in two ways.
@@ -209,17 +230,20 @@ Without this assertion, the ESP32 is unresponsive to programming and does not pe
 
 The other form of control is through the respective SPI lines of the two microcontrollers.
 The SPI driver for the PIC32 is simple, as that device acts as the `master', which is the typical mode for a microcontroller to operate in.
-The PIC32 is configured as a 32-bit master operating in SPI mode 0~\ref{https://www.sciencedirect.com/science/article/abs/pii/B9780123914903000047}
-The baudrate generator value has been calculated using the equation \(BRG = (F_{PB} / 2 \times F_{SCK}) - 1\). \textbf{CALCULATE THIS: BRG = 50}.
+The PIC32 is configured as a 32-bit master operating in SPI mode 3~\cite{Barry:2012}.
+The baudrate generator value has been calculated using the equation \(BRG = (F_{PB} / 2 \times F_{SCK}) - 1\),
+and a SPI clock speed of 31.3 kHz has been generated (using a BRG value of 50).
+This value has been intentionally set low so that the transmission speeds are well below what both devices are capable of,
+they can be easily raised by decreasing the value of BRG, once the system has been well tested.
 Finally, the low-level SPI driver is implemented in~\autoref{code:spi_driver}
 
 \begin{lstlisting}[language=C,caption={PIC32 low-level SPI driver}\label{code:spi_driver}]
   uint32_t ESP32_SPI_write(uint32_t data) {
-    SPI2BUF = data;                 // Place data we want to send in SPI buffer
-    while(!SPI2STATbits.SPITBE);    // Wait until sent status bit is cleared
-    uint32_t read = SPI2BUF;        // Read data from buffer to clear it
+    SPI2BUF = data;
+    while(!SPI2STATbits.SPITBE);
+    uint32_t read = SPI2BUF;
 
-    delay_us(5000);                 // Required delay for data transmission
+    delay_us(5000);
     return read;
   }
 \end{lstlisting}
@@ -237,7 +261,8 @@ since this delay is a clear cost to performance and by far the cause of the most
 This delay is most likely necessary due to the operation of the SPI chip select line.
 Specifically, the way the chip select line does not reset between SPI transmissions without adequate delays between writes.
 This could be solved by manually asserting the chip select line instead of allowing the peripheral to control it.
-However, due to time restrictions it was decided that features should be prioritized over performance,
+However, due to time restrictions it was decided that features should be implemented in a basic functional form,
+and performance could be optimized once the system was fully functional.
 and thus the driver was implemented using significantly slower delay.
 
 The ESP32 SPI configuration was less straightforward.
@@ -247,19 +272,16 @@ However, since the on-body device uses multiple microcontrollers communicating v
 one of these devices needs to act as a slave.
 Since the PIC32 is what communicates to the sensors, and the ESP32 only acts as a wireless transmitter,
 the PIC32 was configured as the SPI master, leaving the ESP32 as an SPI slave.
-There no official support for this in the native development environment, so either a custom or third party library must be used.
-In the interest of getting as much of the project functional as possible, it was decided that a third party library would be used \textbf{DECISION MATRIX?}.
-However, there are potential performance improvements that could be achieved if a custom library was used, such as reducing the PIC transmission delays,
-so it is recommended that this option is looked into in the future.
+There no official support for this in the native development environment, so a third party library was used.
 
-The library that was used is the ESP32DMASPI~\ref{https://github.com/hideakitai/ESP32DMASPI} library.
-This library is based on the official driver from the manufacture~\ref{https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/spi_slave.html#spi-slave-driver}.
+The library that was used is the ESP32DMASPI library~\cite{ESP32DMASPI}.
+This library is based on the official driver from the manufacture~\cite{SPI}.
 
-How do I describe my workarounds in order to get this to work aside from just saying that that's what I did?
-SPI implemented using task based DMA receiving.
-Tasks run in separate threads, which frees up main thread to only process OTA updates.
-One task runs continuously waiting for SPI transmission~\autoref{code:esp_spi}.
-
+SPI was implemented using task based DMA receiving.
+In this setup, tasks run in separate threads, which frees up main thread to only process OTA updates.
+One task runs continuously, waiting for SPI transmission~\autoref{code:esp_spi}.
+% TODO: DESCRIBE IN MORE DETAIL HOW THESE WORK
+%
 \begin{lstlisting}[language=C++,caption={ESP32 code for receiving SPI data}\label{code:esp_spi}]
   void task_wait_spi(void* pvParameters) {
     while (1) {
@@ -283,11 +305,19 @@ Once data has been received, a different task handles processing the incoming da
   }
 \end{lstlisting}
 
-\textbf{DESCRIBE MORE DETAIL ABOUT HOW THESE WORK.}
-
 This should have been the end of the SPI implementation,
 however the SPI communication did not work with just this code.
-To get the communication working some additional functions were required on the PIC~\autoref{code:spi_additional_functions}.
+To get the communication working some additional functions were required on the PIC.
+For example, the only way to send data was to write a single byte at a time, despite the fact that the SPI module is in 32-bit (4 byte) mode.
+What is interesting about this is that the single byte must be located at the front of the 4 byte word.
+This implies that the ESP32 was not able to receive 32-bits, and instead was just receiving the first 8-bit word.
+However, if the SPI peripheral of the PIC32 was put into 8-bit mode (and all respective code changed to fit that mode),
+the ESP32 would receive nothing.
+So, the ESP32 required the PIC32 to send 32 SPI clock pulses but would only receive the first 8 data bits.
+This same behavior was present when using both a task based approach or a polling approach and when DMA was or was not in use.
+It is a substantial issue because it adds a 75\% overhead to the communication system.
+This, and the required delay in the low-level driver, are the primary candidates for future optimizations.
+The code for embedding data into a 4 byte word is shown in~\autoref{code:spi_additional_functions}.
 
 \begin{lstlisting}[language=C++, caption={PIC32 additional SPI functions}\label{code:spi_additional_functions}]
   void ESP32_SPI_write_4byte(uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4) {
@@ -304,17 +334,7 @@ To get the communication working some additional functions were required on the 
   }
 \end{lstlisting}
 
-Then, the only way to send data was to write a single byte at a time.
-What is interesting about this is that the single byte is located at the front of the 4 byte word.
-This implies that the ESP32 was not able to receive 32-bits, and instead was just receiving the first 8-bit word.
-However, if the SPI peripheral of the PIC32 was put into 8-bit mode (and all respective code changed to fit that mode),
-the ESP32 would receive nothing.
-So, the ESP32 required the PIC32 to send 32 SPI clock pulses but would only receive the first 8 data bits.
-This same behavior was also present when using a task based approach or a polling approach and when DMA was or was not in use.
-It is a substantial issue because it adds a 75\% overhead to the communication system.
-This, and the required delay in the low-level driver, are the primary candidates for future optimizations.
-
-However, despite these performance issues, the drivers function together.
+Despite significant performance issues, the drivers function together.
 Allowing abritary bytes to be shared between the two devices.
 
 
@@ -333,20 +353,26 @@ Additionally, the device ID is different which can cause some confusion when ini
 \subsection{Startup Procedure}
 The startup procedure of the device is shown in~\autoref{fig:ads_startup}.
 When implementing this startup procedure, a similar SPI driver to what was seen in~\autoref{code:spi_driver} was used.
-The key difference is that a higher delay was used for testing to ensure communication was well below data sheet limitations.
+The key difference is that a higher delay was used for testing to ensure communication was well below data sheet limitations~\cite{ADS}.
 When trying to follow this procedure, there were a number of key differences between what was expected and what was measured.
 It appeared that no matter what command was sent, the response was always the binary number \(01100000\).
-The data sheet specified responses for different registers, but regardless of that the response was always the same.
+The data sheet specified responses for different registers, but regardless of the register the response was always the same.
 The device also did not appear to respond to any two byte commands.
 However, the device did respond to single byte commands.
 
+\begin{figure}[!ht]
+  \caption{ADS1294R startup sequence}\label{fig:ads_startup}
+  \centering
+  \includegraphics[width=1\columnwidth/2]{chapters/development/results/ADS_Startup_Sequence}
+\end{figure}
+
 The single byte commands were verified by monitoring the state of the data ready pin.
-Since this pin was connected to the PIC and the PIC has general purpose test points on a number of pins,
+Since this pin was connected to the PIC and the PIC has general purpose test points on a number of pins;
 the read value of the data ready pin can be written to one of the test points.
 This effectively `passes through' the state of the pin.
 The caveat being that any delays to the PIC will cause a delay between the data ready value and the test point.
 As well as that it strips the signal of all information aside from if it has crossed the PIC's logic threshold.
-However, these limitations do not stop the device \textbf{?} from providing important insight.
+However, the limited information it provides is still useful in this context.
 Using an oscilloscope connected to the `pass through' test point, it is shown that the data ready pin is continually asserted.
 This changes after calling single byte commands that change the state of the ADS1294R.
 For example, if the reset command is continually send, the data ready pin will never be asserted,
@@ -355,7 +381,7 @@ Similarly, if the standby or stop commands are sent, the pin is not asserted unt
 The exact same behavior is observed when the physical reset pin is held down, or when the start pin is asserted by the PIC.
 What this says is that the device is powered and the transmit side of the SPI bus is connected correctly.
 Since the SPI binary response is always \(01100000\), it can be assumed that the receive side of the SPI bus is also connected correctly.
-This is because the response does not change and is both non-zero and also not all ones.
+This is because the response does not change and is both non-zero and also not continually driven high.
 If either of those were true, the SPI bus could be picking up noise, or the receive pin may not be getting asserted.
 But because of this response it must be being controlled by the ADS1294R SPI module,
 since there is no other part of that device that is connected to the SPI clock and the response is the same even at higher and lower SPI clock speeds.
@@ -363,27 +389,24 @@ since there is no other part of that device that is connected to the SPI clock a
 As the SPI hardware is assumed to be connected correctly, and the low-level SPI driver is confirmed to work with the ESP32,
 the fault is assumed to be in the SPI configuration and startup procedure on the PIC.
 Changing the clock polarity or clock phase causes the single byte commands to fail.
-Moreover, changing the SPI interface off of 8-bit mode to 32-bit or 16-bit mode also caused the commands to fail.
+On top of that, changing the SPI interface off of 8-bit mode to 32-bit or 16-bit mode also caused the commands to fail.
 The only change that could be made was the data sampling time, as this effected nothing to do with the transmission.
 This change caused the received bits to change position,
 but they were still not correct and different commands still caused the device to respond with the same response each time.
 Therefore, the place in the program that was most widely explored was the code for the startup procedure.
 
-\textbf{SPI SETUP IS AS SHOWN}
-clock polarity 0, clock phase 1, output edge rising, data capture falling
-
 The most obvious difference is that the startup procedure suggests using the hardware reset,
 but that pin is tied to a physical switch instead of directly connected to the PIC.
 Because of this, there is no way to automatically hardware reset the device in software,
 so the reset has previously been achieved by sending the reset command.
-To achieve a hardware reset, a long delay was added to the startup sequence so that the physical switch could be pressed at the correct point.
+To achieve a true hardware reset, a long delay was added to the startup sequence so that the physical switch could be pressed with the correct timing.
 To aid with the timing, one of the test points was also driven high at the start of this timing window and low once the window had passed.
-Then, using an oscilloscope, the ADS1294R could be hardware reset at the correct point in the boot-up process.
+Then, using an oscilloscope to verify the timing window, the ADS1294R could be hardware reset at the correct point in the boot-up process.
 This unfortunately did not solve the issue and the device still maintained the same issue as before.
 
 Next, the register read and register write functions were investigated.
 Since we had verified that the low-level driver was functional, and that same driver handled both the reading and writing,
-it was unlikely that this was the issue, as there was nothing about that driver that could be changed \textbf{ELABORATE}.
+it was unlikely that this was the issue, as this driver is so simple ther are not many places errors could propagate.
 
 The code for writing to the register is shown in~\autoref{code:ads_reg_write}.
 
@@ -423,20 +446,34 @@ We then turned our attention to the read register function shown in~\autoref{cod
 Similar changes and additions were added to this function, with the same result of the communication not working correctly.
 
 At this point all of the command and register definition were double checked and
-the register read and write functions were stepped through to verify that the bytes bit by bit, they were all correct.
+the register read and write functions were stepped through to verify that the bytes bit by bit, and all confirmed to be correct.
 
 Since all logical software changes had been made and the system was still not functional,
 it was decided that the SPI pins should be broken out so the commuincation could be analyzed using an oscilloscope.
 Craig Dawson from engineering services helped in this aspect of the project,
 since the pitch of the pins that needed to be soldered required specialized tools and expertise.
-\textbf{ADD FIGURE OF BOARD WITH JUMPERS}
+The device modifications are shown in~\autoref{fig:pic_wires}.
+
+\begin{figure}[!ht]
+  \caption{PIC32 board attached debugging wires}\label{fig:pic_wires}
+  \centering
+  \includegraphics[width=1\columnwidth]{chapters/development/results/P_20230919_170532}
+\end{figure}
+
 
 A four channel oscilloscope could then be used to analyze the SPI communication.
-What was eventually discovered was that the chip select pin was not being asserted for long enough.~\textbf{MAYBE FIGURE HERE OF SCOPE}
+What was eventually discovered was that the chip select pin was not being asserted for long enough.
+The SPI communication between the two devices is shown in~\autoref{fig:ads_spi}.
 Since the chip select pin was being controlled by the PIC SPI module,
 it was being automatically driven low during transmission and then high again after transmission completed.
 This would have been the desired behavior, and it indeed was for single byte commands,
 but for multi-byte commands the chip select line needed to stay asserted until all of the bytes had been transferred and received.
+
+\begin{figure}[!ht]
+  \caption{SPI communication between PIC32 and ADS1294R}\label{fig:ads_spi}
+  \centering
+  \includegraphics[width=1\columnwidth]{chapters/development/results/ADS_SPI_COMMS}
+\end{figure}
 
 The solution to this is to disable chip select control on the SPI module and manually set and reset the pin in software.
 To accomplish this, the code was changed as shown in~\autoref{code:ads_cmd_write} and~\autoref{code:ads_updated_reg_funcs}
