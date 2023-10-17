@@ -40,6 +40,10 @@ clean:
 .PHONY: rebuild
 rebuild: clean all
 
+# Do everything
+.PHONY: full
+full: rebuild insert-declaration
+
 # Spellcheck target
 .PHONY: spellcheck
 spellcheck:
