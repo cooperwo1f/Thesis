@@ -23,20 +23,25 @@ For this project, DMX512 (DMX) was determined to be the most appropriate.
     \input{chapters/project_plan/tables/lighting_continued.tex}
 \end{table}
 
+% TODO: ADD PURCHASED VS DIY CONTROLLER DECISION MATRIX
+To control DMX fixtures, there are two options, using an off-the-shelf controller or creating a custom controller.
+As shown in this decision matrix, the more viable option was to purchase an off-the-shelf controller.
+
 \section{Prototyping Fixture}
 To aid in the development of the lighting controller, a prototyping fixture was developed.
 This fixture just requires an Arduino and a NeoPixel LED strip to function.
 This has the major benefit over a real fixture of being extremely cost effective, as well as being small, and powered over USB.
 
-
-Small number of LEDs to verify correct control.
-8 NeoPixel LEDs with 4 `dummy' DMX channels each.
-DMX channels are intensity, red channel, green channel, blue channel.
-Total of 32 channels (\(4 \times 8\))
+The prototyping fixture is made up of 8 NeoPixel LEDs with 4 DMX channels each.
+The DMX channels are intensity, red channel, green channel, blue channel.
+This makes a total of 32 channels (\(4 \times 8\)) for the 8 LEDs.
 
 \subsection{DMX}
-Fixture uses Arduino along with
-\href{https://github.com/mathertel/DMXSerial}DMXSerial library.
+The fixture connects to the off-body PC over USB and communicates via serial.
+While the device does not strictly require DMX frames in order to function,
+DMX was still implemented in software in order to better understand the protocol as well as unify the protoyping fixture with the real controller.
+
+
 Receives DMX frames using interrupts
 and stores them into array for processing.
 DMX frames are 512 bytes wide.
@@ -48,7 +53,7 @@ This way, fixture are aware if they lose connection to the controller,
 since they stop receiving frames.
 
 \subsection{NeoPixels}
-LEDs controlled using \href{https://github.com/adafruit/Adafruit_NeoPixel}NeoPixel library.
+LEDs controlled using NeoPixel library~\cite{NeoPixel}.
 LEDs can be colored independently using red, green, and blue values.
 Each color is represented using a byte.
 
