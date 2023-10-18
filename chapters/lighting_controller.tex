@@ -39,30 +39,18 @@ This makes a total of 32 channels (\(4 \times 8\)) for the 8 LEDs.
 \subsection{DMX}
 The fixture connects to the off-body PC over USB and communicates via serial.
 While the device does not strictly require DMX frames in order to function,
-DMX was still implemented in software in order to better understand the protocol as well as unify the protoyping fixture with the real controller.
-
-
-Receives DMX frames using interrupts
-and stores them into array for processing.
-DMX frames are 512 bytes wide.
-A frame consists of the entire DMX `universe' of channels.
-Individual channels are never written,
-instead the entire `universe' is updated with each frame.
-Updates happen continually at a known rate.
-This way, fixture are aware if they lose connection to the controller,
-since they stop receiving frames.
+DMX was still implemented in software in order to better understand the protocol as well as unify the prototyping fixture with the real controller.
 
 \subsection{NeoPixels}
-LEDs controlled using NeoPixel library~\cite{NeoPixel}.
-LEDs can be colored independently using red, green, and blue values.
-Each color is represented using a byte.
+The prototyping fixture contains an array of NeoPixel LEDs.
+These LEDs are controlled using the Adafruit NeoPixel library~\cite{NeoPixel}.
+The LEDs can then be colored independently using red, green, and blue values.
+Since each color is represented using a byte, it can be mapped directly to a DMX channel, since those are also a byte long.
 
 \subsection{Integration}
-Both the DMX channel and color values are represented using bytes.
-No additional scaling is required.
+To implement DMX intensity control, the LED brightness needs to be mapped using the the code shown in~\autoref{code:dmx_mapping}.
 
-Brightness needs to be mapped using
-\begin{lstlisting}[language=C]
+\begin{lstlisting}[language=C++,caption={Prototyping fixture DMX color intensity mapping}\label{code:dmx_mapping}]
   (intensity * color) >> 8;
 \end{lstlisting}
 
@@ -70,29 +58,28 @@ In this case bit shifting by 8 is equivalent to dividing by 255.
 This means that at maximum intensity the result of this calculation is the color value.
 While at the minimum intensity the calculation becomes 0.
 
-The values are sent over serial using Base64.
-This is so that the carrige return line can be used to mark the end of the incoming values.
-This was because the Arduino could become out of sync with what was being sent.
-If this happened there is no way of getting back in sync,
-because any special character could be interpreted as a regular value.
-This is why Base64 is necessary, because it allows for special characters that are seperate
-from the designated regular character set.
-The values are sent as single decimal digits.
-So when they are received they must be decoded back into bytes.
-
-The value of each LED is then encoded across 4 bytes.
-So the main program loops, incrementing by 4 each time,
+The value of each LED is encoded across 4 bytes.
+So the main DMX processing loop increments by 4 each time,
 and extracts the discrete bytes, setting the base address of the LED to the derived color.
-Once this is done for all the LEDs, they are updated using the show() function.
+Once this is done for all the LEDs, they are updated using the NeoPixel show() function.
+
+With this, the prototyping fixture can respond to DMX channels in the same way you would expect a conventional DMX fixture to.
 
 \section{OpenDMX Controller}
-When using expensive hardware in professional settings, it is important to use compliant hardware.
-While the prototyping fixture could be used for system verification,
-it was decided that existing hardware would be purchased for lighting control.
-\textbf{DECISION MATRIX HERE (MIGHT ALREADY HAVE ONE IN MY RESULTS POWER POINT?)}
+For use in professional lighting environments, it is important to use compliant hardware,
+since many of the devices in these environments come with a substantial cost.
+
+Therefore, for this project a third-party device was used in order to mitigate the risk associated towards these devices.
+The third-party device that was chosen was the ENTTEC OpenDMX USB device~\cite{ENTTEC},
+as it was within the system budget, has an open source driver, and maintained compliance.
 
 \subsection{Interface}
 The driver provided by the manufacturer was written in C\#.
-Existing code for the project is written in MATLAB.
-We needed some way of controlling the device from MATLAB to utilise previous code.
-\textbf{MORE TO BE WRITTEN ABOUT THIS}
+Since existing code for this project had been written in MATLAB.
+An interface between the device and the existing code had to be created.
+The simplest way to do this is to create a TCP/IP port that connects to a C\# server.
+That way, any high level language can connect and control the DMX output device, including MATLAB.
+
+The code for doing this is shown in~\autoref{code:dmx_server}
+
+\lstinputlisting[language=C,caption={C sharp DMX server receiver code}\label{code:dmx_server}]{chapters/development/dmx_server.cs}

@@ -21,14 +21,14 @@ An `offline' version of this program can be made without the need for full syste
 Since this data is the same as what we will be eventually expecting to see,
 The processing code that we write for this test data will also function similarly on the real data.
 
-For testing, an electrocardiogram (ECG) dataset from a previous iteration of the project was used.
+For testing, an electrocardiogram (ECG) data-set from a previous iteration of the project was used.
 The code for bringing that into the workspace is shown in~\autoref{code:matlab_dataset_test_setup}.
-The load command will load a number of different ECG datasets with that all have different beats per minute (BPM),
+The load command will load a number of different ECG data-sets with that all have different beats per minute (BPM),
 and the desired ECG signal for testing can be selected by changing the the assignment of the ECG variable.
 For example, to load a 60 BPM ECG signal, the assignment could be changed to ECG = ecgdata360Hz\_hrmean60.
-The specific datasets that are available can be seen in the workspace tab of MATLAB once the load command has been executed.
+The specific data-sets that are available can be seen in the workspace tab of MATLAB once the load command has been executed.
 Additionally, a loop rate is calculated to simulate the sensor sampling rate.
-Since the testing dataset sample rate is known, it can be easily calculated from that.
+Since the testing data-set sample rate is known, it can be easily calculated from that.
 
 \begin{lstlisting}[language=MATLAB,caption={MATLAB electrocardiogram packet test setup}\label{code:matlab_dataset_test_setup}]
 load('./Previous/MatFiles/ex_ecgdata360Hz.mat');
@@ -36,7 +36,7 @@ ECG = ecgdata360Hz_hrmean220;
 RATE = 1 / 360;
 \end{lstlisting}
 
-Once the dataset has been imported, the program can loop through and generate example packets for testing.
+Once the data-set has been imported, the program can loop through and generate example packets for testing.
 The code to do this is shown in~\autoref{code:matlab_dataset_test_loop}.
 
 \begin{lstlisting}[language=MATLAB,caption={MATLAB electrocardiogram packet translation}\label{code:matlab_dataset_test_loop}]
@@ -70,12 +70,12 @@ The first thing that is done is the constants and variables definitions.
 In this context, packet refers to the small subset of the ECG signal that is going to be added to the larger fixed length array.
 That fixed length array is labelled `data' in this example.
 
-The packet index is the data position from the ECG dataset where data will be sampled from.
+The packet index is the data position from the ECG data-set where data will be sampled from.
 Packet length determines how many samples at a time are shifted in and out of the data array,
 this is to simulate the device transmitting multiple samples at a time.
 
-When the packet index reaches the end of the ECG dataset, the index resets back to the beginning.
-This is so the test program can run continously, regardless of how big the test dataset actually is.
+When the packet index reaches the end of the ECG data-set, the index resets back to the beginning.
+This is so the test program can run continuously, regardless of how big the test data-set actually is.
 When the index resets, there is a break in continuity of the signal. However, this is a known issue and can be easily detected and ignored.
 
 % TODO: FIGURE SHOWING DATA ENTERING AND EXITING FIXED LENGTH ARRAY
@@ -84,7 +84,7 @@ Then, the same amount of data, from the packet, can be appended to the end of th
 Plots of this data are shown in~\autoref{fig:matlab_packet_test1} and\autoref{fig:matlab_packet_test2}.
 
 With this setup, the off-body PC is ready to process an incoming signal as a fixed sized array of data.
-An example of potential signal analaysis is shown in~\autoref{code:matlab_analaysis}.
+An example of potential signal analysis is shown in~\autoref{code:matlab_analaysis}.
 
 \begin{figure}[!ht]
   \caption{Fixed length data buffer visualization half filled}\label{fig:matlab_packet_test1}
@@ -113,8 +113,8 @@ An example of potential signal analaysis is shown in~\autoref{code:matlab_analay
 \end{lstlisting}
 
 % TODO: WOULD BE GOOD TO HAVE SOME RESULT FROM THIS IN SOME CAPACITY
-This code calcuates the BPM of the signal by measuring the gaps between the peaks of the ECG QRS signals.
-It can be verified by comparing the measured BPM value with the given value from the dataset.
+This code calculates the BPM of the signal by measuring the gaps between the peaks of the ECG QRS signals.
+It can be verified by comparing the measured BPM value with the given value from the data-set.
 When the system is integrated, as long as the data length matches and the sensor data is accurate,
 this same code will produce similar results.
 
@@ -125,8 +125,8 @@ With all the block of the system functional,
 the first step of system integration is to establish communication between the off-body PC and on-body device.
 
 On the on-body device, the ESP32 acts as the wireless bridge.
-As this device requires a connection to WiFi for OTA updates, the wireless protocol that was choosen to be implemented was TCP/IP.
-This is because the device already has a TCP/IP requirement and the only other choice for wireless communication was bluetooth, which does not have the range or speed that TCP/IP has.
+As this device requires a connection to WiFi for OTA updates, the wireless protocol that was chosen to be implemented was TCP/IP.
+This is because the device already has a TCP/IP requirement and the only other choice for wireless communication was Bluetooth, which does not have the range or speed that TCP/IP has.
 The code for connecting the ESP32 to the off-body PC is shown in~\autoref{code:esp_tcpip_connect} and the corresponding MATLAB code is shown in~\autoref{code:matlab_tcpip}.
 
 \begin{lstlisting}[language=C++,caption={ESP32 code for connecting to TCP/IP client}\label{code:esp_tcpip_connect}]
@@ -175,10 +175,10 @@ The port settings can be seen in~\autoref{fig:firewall}.
 
 With data being sent between the ESP32 and the off-body PC, the next device to connect is the PIC32 to the off-body PC.
 Since the SPI communication between the PIC and the ESP has already been established,
-the process buffer task can be updated to passthrough the received data to the off-body PC, this is shown in~\autoref{code:esp_tcpip_pic_passthrough}.
+the process buffer task can be updated to pass-through the received data to the off-body PC, this is shown in~\autoref{code:esp_tcpip_pic_passthrough}.
 The other change to this SPI code is to add the client connection setup code from~\autoref{code:esp_tcpip_connect}.
 
-\begin{lstlisting}[language=C++,caption={ESP32 code for connecting to TCP/IP client}\label{code:esp_tcpip_pic_passthrough}]
+\begin{lstlisting}[language=C++,caption={ESP32 code for transmitting received SPI data}\label{code:esp_tcpip_pic_passthrough}]
 void task_process_buffer(void* pvParameters) {
   while (1) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
@@ -191,7 +191,7 @@ void task_process_buffer(void* pvParameters) {
 
 Then, the PIC can communicate with the off-body PC as shown in~\autoref{code:pic_offbody_pc_test}.
 
-\begin{lstlisting}[language=C,caption={ESP32 code for connecting to TCP/IP client}\label{code:pic_offbody_pc_test}]
+\begin{lstlisting}[language=C,caption={PIC32 code for sending data to off-body PC through the ESP32}\label{code:pic_offbody_pc_test}]
 void init() {
   ESP32_init();
 }
@@ -219,8 +219,11 @@ Another approach is to limit the character set so that specific byte values can 
 For example, the decimal value of 10, which corresponds to the newline character, could be used to mark the end of transmission.
 That way, even if the transmitter and receiver become out of sync, the system has a way of recovering.
 There are a number of character sets that have already been developed.
+For this project, base64 was implemented due to its lower overhead when compared to ASCII, its human readability to aid debugging, and its good documentation.
 
-\begin{lstlisting}[language=C]
+The code to transmit base64 encoded data from the PIC32 to the off-body PC is shown in~\autoref{code:pic_base64}.
+
+\begin{lstlisting}[language=C,caption={PIC32 code for transmitting base64 encoded data}\label{code:pic_base64}]
   void ESP32_SPI_write_array(uint8_t *array, size_t len) {
     for (size_t i = 0; i < len; i++) {
       ESP32_SPI_write_byte(array[i]);
@@ -265,13 +268,22 @@ There are a number of character sets that have already been developed.
   }
 \end{lstlisting}
 
-\begin{lstlisting}[language=MATLAB]
+This code takes the inputted data and limits it to only use characters from the encoding table.
+After the data has been encoded, it is sent to the ESP32 for writing to the off-body PC.
+That device then receives the data using the code shown in~\autoref{code:matlab_base64}.
+
+\begin{lstlisting}[language=MATLAB,caption={Off-body PC code for receiving and decoding base64 data}\label{code:matlab_base64}]
 base64 = readline(src);
 decoded = transpose(matlab.net.base64decode(char(base64)));
 \end{lstlisting}
 
+With this implemented, data that is sent to the off-body PC is consistently received correctly and the devices do not get out of sync.
+This encoding function allows for arbitrary data to be sent between the PIC32 and the off-body PC.
+One major benefit of this is that it allows custom wrapping of a printf function, along with the previously implemented packet writing function,
+to give the user a custom debugging function that allows any number or string to be formatted and sent to the off-body PC.
+The code to achieve this is shown in~\autoref{code:pic32_printf}.
 
-\begin{lstlisting}[language=C]
+\begin{lstlisting}[language=C,caption={PIC32 printf debugging over WiFi}\label{code:pic32_printf}]
 void debug(const char *fmt, ...) {
     va_list args;
     char str[1024];
@@ -284,12 +296,19 @@ void debug(const char *fmt, ...) {
 }
 \end{lstlisting}
 
-\begin{lstlisting}[language=MATLAB]
+The off-body PC can then decoded the received characters and print them to the console using the code in~\autoref{code:matlab_printf}.
+
+\begin{lstlisting}[language=MATLAB,caption={Off-body PC code for receiving custom printf debugging}\label{code:matlab_printf}]
 y = char(decoded);
 disp(y)
 \end{lstlisting}
 
-\begin{lstlisting}[language=C]
+Then, the program can be debugged using the code shown in~\autoref{code:pic32_printf_example}.
+This allows the device to continue running while providing feedback, rather than needing to be put into debugging mode and stepped through manually.
+The primary benefit of this is that it provides information without disrupting timings such as the use of breakpoints does, also this allows debugging in callback functions,
+which the debugger conventionally cannot step into.
+
+\begin{lstlisting}[language=C,caption={PIC32 printf debugging example}\label{code:pic32_printf_example}]
   int i = 0;
 
   void loop() {
@@ -298,5 +317,12 @@ disp(y)
   }
 \end{lstlisting}
 
+
 \section{Testing and Validation}
-What tests were performed and how that validates the system.
+The final part of the project is the testing and validation.
+While all of the independent parts of the system had been tested in a vacuum,
+unfortunately when the system was fully operational, the device failed due to power supply issues.
+The issues are related to what was seen earlier with the ESP32 power issues.
+As more devices came online, the current draw across on-body device's power plane increased, which subsequently increased the voltage drop.
+Eventually, this voltage drop became too large and the devices started to lose power.
+Thus, the testing and validation of the system remains unfinished, as the device was no longer responsive at the point when testing began.

@@ -75,9 +75,9 @@ When compared to the alternative, OTA programming has a number of benefits.
         \item The device can be programmed without a physical connection to a PC.
 \end{itemize}
 
-The downsides to this programming mode is that it adds additional compilation time, as well as minor overhead during runtime.
+The downsides to this programming mode is that it adds additional compilation time, as well as minor overhead during run-time.
 However, the compilation time is already in the range of 40 to 50 seconds, and the addition is less than 5 seconds,
-and the runtime overhead can be mitigated by running OTA code in its own thread.
+and the run-time overhead can be mitigated by running OTA code in its own thread.
 Considering these benefits and drawbacks, it was determined that this programming mode should be implemented.
 
 The first step in implementing this feature was to connect the device to the network.
@@ -335,7 +335,7 @@ The code for embedding data into a 4 byte word is shown in~\autoref{code:spi_add
 \end{lstlisting}
 
 Despite significant performance issues, the drivers function together.
-Allowing abritary bytes to be shared between the two devices.
+Allowing arbitrary bytes to be shared between the two devices.
 
 
 \section{ADS1294R}
@@ -406,7 +406,7 @@ This unfortunately did not solve the issue and the device still maintained the s
 
 Next, the register read and register write functions were investigated.
 Since we had verified that the low-level driver was functional, and that same driver handled both the reading and writing,
-it was unlikely that this was the issue, as this driver is so simple ther are not many places errors could propagate.
+it was unlikely that this was the issue, as this driver is so simple there are not many places errors could propagate.
 
 The code for writing to the register is shown in~\autoref{code:ads_reg_write}.
 
@@ -449,7 +449,7 @@ At this point all of the command and register definition were double checked and
 the register read and write functions were stepped through to verify that the bytes bit by bit, and all confirmed to be correct.
 
 Since all logical software changes had been made and the system was still not functional,
-it was decided that the SPI pins should be broken out so the commuincation could be analyzed using an oscilloscope.
+it was decided that the SPI pins should be broken out so the communication could be analyzed using an oscilloscope.
 Craig Dawson from engineering services helped in this aspect of the project,
 since the pitch of the pins that needed to be soldered required specialized tools and expertise.
 The device modifications are shown in~\autoref{fig:pic_wires}.

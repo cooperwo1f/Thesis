@@ -209,7 +209,7 @@ headsepline, % Uncomment to get a line under the header
   This project is a continuation of the `Music from Biosignals' project, with the addition of lighting control.
   Hardware for the project had been developed, but this hardware had only been programmed with minimal testing software.
   This hardware consists of a PIC32, as the primary microcontroller; an ESP32, acting as a wireless transmitter; and an ADS1294R, which is a specialized analog to digital converter for biosignals.
-  This thesis focusses on creating functional firmware for the various microcontrollers present on the previously developed hardware,
+  This thesis focuses on creating functional firmware for the various microcontrollers present on the previously developed hardware,
   as well as implementing lighting control as an additional output for the system.
 
   The project began with the implementation of the lighting controller.
@@ -229,7 +229,7 @@ headsepline, % Uncomment to get a line under the header
   There were a number of challenges with this, but eventually consistent communication was established.
   Then, a similar process was undertaken for communication between the PIC32 and the ADS1294R.
   This had significant problems.
-  Firstly, the communication lines of the devices had no test points, so there was not way to determine where a number of faults were occuring.
+  Firstly, the communication lines of the devices had no test points, so there was not way to determine where a number of faults were occurring.
   Secondly, the ADS1294R was only responding to single-byte commands, and because of the lack of test points, it was not immediately apparent why.
   Lastly, there was a difference between the schematic designs and the manufactured design that meant the device would not respond exactly as expected, even when functional.
   These issues were overcome and communication was successfully established.
@@ -242,7 +242,7 @@ headsepline, % Uncomment to get a line under the header
   However, at this point in the project, the previously designed hardware started having power issues.
   This is most likely due to the high impedance of the board power lines, and with the addition of all of the devices running together, the current draw causes too much of a voltage drop across the high impedance lines.
 
-  Overall, the project has made vast headways in the development of a performance augmentation platform.
+  Overall, the project has made vast headway's in the development of a performance augmentation platform.
   While the device was not made fully functional, communication issues between all elements of the on-body device were solved,
   and additional recommendations can be implemented into a second version of the board.
 \end{abstract}
