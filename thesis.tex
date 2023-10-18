@@ -204,7 +204,47 @@ headsepline, % Uncomment to get a line under the header
 
 \begin{abstract}
   \addchaptertocentry{\abstractname} % Add the abstract to the table of contents
-% TODO: THIS
+
+  `Performance Augmentation using Biosignals' aims to create a platform for performers to utilize biological signals in order to create engaging live performances.
+  This project is a continuation of the `Music from Biosignals' project, with the addition of lighting control.
+  Hardware for the project had been developed, but this hardware had only been programmed with minimal testing software.
+  This hardware consists of a PIC32, as the primary microcontroller; an ESP32, acting as a wireless transmitter; and an ADS1294R, which is a specialized analog to digital converter for biosignals.
+  This thesis focusses on creating functional firmware for the various microcontrollers present on the previously developed hardware.
+  As well as implementing lighting control as an additional output for the system.
+
+  The project began with the implementation of the lighting controller.
+  This block allows the system to connect to standard performance lighting fixtures and send arbitrary control message based on acquired biosignals.
+  The lighting output uses an off-the-shelf controller, allowing high reliability and effective compliance.
+  Additionally, a prototyping fixture was developed, allowing fast and cost effective testing without the need for an expensive fixture.
+  With these additions, the system is able to map collected signals into interesting lighting effects.
+
+  Further project developments involved the previously designed hardware.
+  The hardware had been programmed to ensure it was wired correctly, with the PIC32 being functional but unconfigured, and the ESP32 being programmed intermittently.
+  The first step was to ensure all devices could be programmed consistently, starting with the ESP32.
+  The intermittent programming issue was solved by implementing over-the-air updates, allowing the device to be programmed over WiFi without needing reset the device into a specific boot mode.
+  Next, the PIC32 was configured correctly to allow hardware debugging.
+
+  Once the devices could be consistently programmed, device-to-device communication was established.
+  This started with the PIC32 communicating with the ESP32 over SPI.
+  There were a number of challenges with this, but eventually consistent communication was established.
+  Then, a similar process was undertaken for communication between the PIC32 and the ADS1294R.
+  This had significant problems.
+  Firstly, the communication lines of the devices had no test points, so there was not way to determine where a number of faults were occuring.
+  Secondly, the ADS1294R was only responding to single-byte commands, and because of the lack of test points, it was not immediately apparent why.
+  Lastly, there was a difference between the schematic designs and the manufactured design that meant the device would not respond exactly as expected, even when functional.
+  These issues were overcome and communication was successfully established.
+
+  The final stage of the project was system integration.
+  An off-body PC was setup, and wireless communication was established to the ESP32 using TCP/IP.
+  Then, communication with the off-body PC and the PIC32, through the ESP32 acting as a wireless bridge, was confirmed.
+  An additional debugging tool was implemented here, to allow arbitrary text transmission between the PIC32 and the off-body PC using a modified version of printf.
+  The final stage of system integration was collecting sensor readings from the ADS1294R and transmitting them wirelessly to the off-body PC for processing.
+  However, at this point in the project, the previously designed hardware started having power issues.
+  This is most likely due to the high impedance of the board power lines, and with the addition of all of the devices running together, the current draw causes too much of a voltage drop across the high impedance lines.
+
+  Overall, the project has made vast headways in the development of a performance augmentation platform.
+  While the device was not made fully functional, communication issues between all elements of the on-body device were solved,
+  and additional recommendations can be implemented into a second version of the board.
 \end{abstract}
 
 %----------------------------------------------------------------------------------------
