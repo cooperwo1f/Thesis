@@ -1,0 +1,90 @@
+\chapter{Prototyping Fixture Code}\label{appendix:prototyping_fixture}
+
+\begin{lstlisting}[language=C++]
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <Adafruit_NeoPixel.h>
+#include <Base64.h>
+
+#define PIXELS_PIN 6
+#define NUM_PIXELS 8
+#define ADDR_PER_PIXEL 4
+#define DMX_LENGTH (NUM_PIXELS * ADDR_PER_PIXEL)
+#define UNIVERSE_SIZE 32
+
+#define INPUT_BUFFER_LENGTH 1024
+#define BASE64_LENGTH 128
+#define RAW_LENGTH 95
+
+Adafruit_NeoPixel pixels(NUM_PIXELS, PIXELS_PIN, NEO_GRB + NEO_KHZ800);
+uint8_t dmx_values[UNIVERSE_SIZE];
+
+char input_buffer[INPUT_BUFFER_LENGTH];
+char decode_buffer[BASE64_LENGTH];
+uint16_t input_index = 0;
+uint8_t new_data = 0;
+
+void setup() {
+  Serial.begin(115200);
+  pixels.begin();
+  pixels.clear();
+  pixels.show();
+}
+
+void serialEvent() {
+  while (Serial.available()) {
+    if (input_index > INPUT_BUFFER_LENGTH) { input_index = 0; } // Should never hit this
+    char c = Serial.read();
+
+    if (c == '\n') {
+      memset(decode_buffer, '\0', BASE64_LENGTH);
+      memcpy(decode_buffer, input_buffer, input_index);
+      new_data = 1;
+      input_index = 0;
+      continue;
+    }
+
+    input_buffer[input_index++] = c;
+  }
+}
+
+void loop() {
+  if (new_data) {
+    new_data = 0;
+
+    int decoded_length = Base64.decodedLength(decode_buffer, BASE64_LENGTH);
+    char decoded_string[decoded_length];
+    Base64.decode(decoded_string, decode_buffer, BASE64_LENGTH);
+
+    int array_index = 0;
+    for (int i = 0; i < decoded_length; i += 3) {
+      char val[3];
+      val[0] = (decoded_string[i+0]);
+      val[1] = (decoded_string[i+1]);
+      val[2] = (decoded_string[i+2]);
+
+      dmx_values[array_index++] = atoi(val);
+    }
+
+    for (int addr = 0; addr < DMX_LENGTH; addr += ADDR_PER_PIXEL) {
+      uint8_t i = dmx_values[addr + 0];
+      uint8_t r = dmx_values[addr + 1];
+      uint8_t g = dmx_values[addr + 2];
+      uint8_t b = dmx_values[addr + 3];
+
+      uint32_t color = pixels.Color(
+        (r * i) >> 8,
+        (g * i) >> 8,
+        (b * i) >> 8
+      );
+
+      pixels.setPixelColor(addr / ADDR_PER_PIXEL, color);
+    }
+
+    pixels.show();
+
+  }
+}
+
+\end{lstlisting}

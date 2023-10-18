@@ -1,0 +1,88 @@
+\chapter{ESP32 Transmitter Code}\label{appendix:esp_code}
+
+\begin{lstlisting}[language=C++]
+#include <WiFi.h>
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+#include <ESP32DMASPISlave.h>
+
+#include <string.h>
+#include <stdint.h>
+#include "util.h"
+
+#define SERVER_IP "10.1.1.187"
+#define SERVER_PORT 2000
+#define BUFFER_LENGTH 128
+
+uint8_t* buffer;
+
+ESP32DMASPI::Slave slave;
+WiFiClient client;
+
+constexpr uint8_t CORE_TASK_SPI_SLAVE {0};
+constexpr uint8_t CORE_TASK_PROCESS_BUFFER {0};
+
+static TaskHandle_t task_handle_wait_spi = 0;
+static TaskHandle_t task_handle_process_buffer = 0;
+
+void task_wait_spi(void* pvParameters) {
+  while (1) {
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    slave.wait(buffer, BUFFER_LENGTH);
+    xTaskNotifyGive(task_handle_process_buffer);
+  }
+}
+
+void task_process_buffer(void* pvParameters) {
+  while (1) {
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    if (client.connected()) { client.write(buffer, slave.available()); }
+    slave.pop();
+    xTaskNotifyGive(task_handle_wait_spi);
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("Booting");
+
+  buffer = slave.allocDMABuffer(BUFFER_LENGTH);
+  delay(1000);
+
+  slave.setDataMode(SPI_MODE0);
+  slave.setMaxTransferSize(BUFFER_LENGTH);
+  slave.begin(HSPI);
+
+  xTaskCreatePinnedToCore(task_wait_spi, "task_wait_spi", 2048, NULL, 2, &task_handle_wait_spi, CORE_TASK_SPI_SLAVE);
+  xTaskNotifyGive(task_handle_wait_spi);
+  xTaskCreatePinnedToCore(task_process_buffer, "task_process_buffer", 2048, NULL, 2, &task_handle_process_buffer, CORE_TASK_PROCESS_BUFFER);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(SSID, PASS);
+
+  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    Serial.printf("Connection Failed! Rebooting... \r\n");
+    delay(5000);
+    ESP.restart();
+  }
+
+  OTA_setup();
+  ArduinoOTA.begin();
+}
+
+void loop() {
+  ArduinoOTA.handle();
+
+  if (!client.connected()) {
+    if (client.connect(SERVER_IP, SERVER_PORT)) {
+      Serial.printf("Connected to %s on tcp port %u \r\n", SERVER_IP, SERVER_PORT);
+    }
+
+    else {
+      Serial.printf("Failed to connect to %s on tcp port %u \r\n", SERVER_IP, SERVER_PORT);
+      delay(1000);
+    }
+  }
+
+\end{lstlisting}

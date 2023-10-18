@@ -1,0 +1,315 @@
+\chapter{DMX Server Code}\label{appendix:dmx_server}
+
+\begin{lstlisting}[language=C++]
+using System;
+using System.Runtime.InteropServices;
+using System.IO;
+using System.Threading;
+
+namespace DMXServer
+{
+
+    public class OpenDMX
+
+    {
+
+        public static byte[] buffer = new byte[513];
+        public static uint handle;
+        public static bool done = false;
+        public static int bytesWritten = 0;
+        public static FT_STATUS status;
+        public static Thread thread;
+
+        public const byte BITS_8 = 8;
+        public const byte STOP_BITS_2 = 2;
+        public const byte PARITY_NONE = 0;
+        public const UInt16 FLOW_NONE = 0;
+        public const byte PURGE_RX = 1;
+        public const byte PURGE_TX = 2;
+
+
+
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_Open(UInt32 uiPort, ref uint ftHandle);
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_Close(uint ftHandle);
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_Read(uint ftHandle, IntPtr lpBuffer, UInt32 dwBytesToRead, ref UInt32 lpdwBytesReturned);
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_Write(uint ftHandle, IntPtr lpBuffer, UInt32 dwBytesToRead, ref UInt32 lpdwBytesWritten);
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_SetDataCharacteristics(uint ftHandle, byte uWordLength, byte uStopBits, byte uParity);
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_SetFlowControl(uint ftHandle, char usFlowControl, byte uXon, byte uXoff);
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_GetModemStatus(uint ftHandle, ref UInt32 lpdwModemStatus);
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_Purge(uint ftHandle, UInt32 dwMask);
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_ClrRts(uint ftHandle);
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_SetBreakOn(uint ftHandle);
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_SetBreakOff(uint ftHandle);
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_GetStatus(uint ftHandle, ref UInt32 lpdwAmountInRxQueue, ref UInt32 lpdwAmountInTxQueue, ref UInt32 lpdwEventStatus);
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_ResetDevice(uint ftHandle);
+        [DllImport("FTD2XX.dll")]
+        public static extern FT_STATUS FT_SetDivisor(uint ftHandle, char usDivisor);
+
+
+        public static void start()
+        {
+            handle = 0;
+            status = FT_Open(0, ref handle);
+            thread = new Thread(new ThreadStart(writeData));
+            thread.Start();
+            setDmxValue(0, 0);  //Set DMX Start Code
+        }
+
+        public static void stop()
+        {
+            if (thread != null && thread.ThreadState != ThreadState.Stopped)
+            {
+                thread.Abort();
+            }
+
+            status = FT_Close(handle);
+        }
+
+        public static void setDmxValue(int channel, byte value)
+        {
+            if (buffer != null)
+            {
+                buffer[channel + 1] = value;
+            }
+        }
+
+        public static void writeData()
+        {
+            while (!done)
+            {
+                initOpenDMX();
+                FT_SetBreakOn(handle);
+                FT_SetBreakOff(handle);
+                bytesWritten = write(handle, buffer, buffer.Length);
+                Thread.Sleep(20);
+            }
+
+        }
+
+        public static int write(uint handle, byte[] data, int length)
+        {
+            IntPtr ptr = Marshal.AllocHGlobal((int)length);
+            Marshal.Copy(data, 0, ptr, (int)length);
+            uint bytesWritten = 0;
+            status = FT_Write(handle, ptr, (uint)length, ref bytesWritten);
+            return (int)bytesWritten;
+        }
+
+        public static void initOpenDMX()
+        {
+            status = FT_ResetDevice(handle);
+            status = FT_SetDivisor(handle, (char)12);  // set baud rate
+            status = FT_SetDataCharacteristics(handle, BITS_8, STOP_BITS_2, PARITY_NONE);
+            status = FT_SetFlowControl(handle, (char)FLOW_NONE, 0, 0);
+            status = FT_ClrRts(handle);
+            status = FT_Purge(handle, PURGE_TX);
+            status = FT_Purge(handle, PURGE_RX);
+        }
+
+    }
+
+    /// <summary>
+    /// Enumaration containing the varios return status for the DLL functions.
+    /// </summary>
+    public enum FT_STATUS
+    {
+        FT_OK = 0,
+        FT_INVALID_HANDLE,
+        FT_DEVICE_NOT_FOUND,
+        FT_DEVICE_NOT_OPENED,
+        FT_IO_ERROR,
+        FT_INSUFFICIENT_RESOURCES,
+        FT_INVALID_PARAMETER,
+        FT_INVALID_BAUD_RATE,
+        FT_DEVICE_NOT_OPENED_FOR_ERASE,
+        FT_DEVICE_NOT_OPENED_FOR_WRITE,
+        FT_FAILED_TO_WRITE_DEVICE,
+        FT_EEPROM_READ_FAILED,
+        FT_EEPROM_WRITE_FAILED,
+        FT_EEPROM_ERASE_FAILED,
+        FT_EEPROM_NOT_PRESENT,
+        FT_EEPROM_NOT_PROGRAMMED,
+        FT_INVALID_ARGS,
+        FT_OTHER_ERROR
+    };
+
+}
+
+\end{lstlisting}
+
+\begin{lstlisting}[language=C++]
+using System;
+using System.Threading;
+using System.IO.Ports;
+using System.Linq;
+
+namespace DMXServer
+{
+    public class ArduinoDMX
+    {
+        static SerialPort port;
+        static Thread thread;
+
+        static byte[] buffer = new byte[8*4];
+
+        public void start()
+        {
+            if (port != null && port.IsOpen)
+            {
+                port.Close();
+            }
+
+            port = new SerialPort("COM25", 115200);
+            port.Open();
+
+            thread = new Thread(new ThreadStart(writeData));
+            thread.Start();
+        }
+
+        public void stop()
+        {
+            if (thread != null && thread.ThreadState != ThreadState.Stopped)
+            {
+                thread.Abort();
+            }
+
+            if (port != null && port.IsOpen)
+            {
+                port.Close();
+            }
+        }
+
+        public void setDmxValue(int channel, byte value)
+        {
+            if (buffer != null)
+            {
+                if (channel < buffer.Length)
+                {
+                    buffer[channel] = value;
+                }
+            }
+        }
+
+        public void writeData()
+        {
+            while (true)
+            {
+                char[] end_char = { '\n' };
+
+                string raw = string.Concat(buffer.Select(x => x.ToString("000")));
+                raw = raw.Remove(raw.Length - 1, 1);
+                string b64 = Base64Encode(raw);
+
+                port.Write(b64);
+                port.Write(end_char, 0, 1);
+
+                Thread.Sleep(20);
+            }
+        }
+
+        public static string Base64Encode(string plainText)
+        {
+            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+            return System.Convert.ToBase64String(plainTextBytes);
+        }
+
+        public void WriteArray(byte[] buffer)
+        {
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                Console.Write(buffer[i]);
+                Console.Write(" ");
+            }
+        }
+    }
+}
+
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=C++]
+using System;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using System.Text;
+using System.Windows.Input;
+
+namespace DMXServer
+{
+    internal class Program
+    {
+
+        static void Main(string[] args)
+        {
+            int num_leds = 8;
+            int num_channels = 4;
+            //TcpListener server = null;
+            ArduinoDMX arduino_dmx = new ArduinoDMX();
+            //OpenDMX open_dmx = new OpenDMX();
+
+            arduino_dmx.start();
+            //Int32 port = 13000;
+            //IPAddress localAddr = IPAddress.Parse("127.0.0.1");
+
+            //server = new TcpListener(localAddr, port);
+            //server.Start();
+
+            //TcpClient client = server.AcceptTcpClient();
+            //Console.WriteLine("CLIENT CONNECTED");
+            //NetworkStream stream = client.GetStream();
+
+            //while (!client.Connected) ;
+            /*
+            while (client.Connected)
+            {
+                int buf_len;
+                byte[] buf = new byte[1024];
+
+                if ((buf_len = stream.Read(buf, 0, buf.Length)) > 0)
+                {
+                    string str = Encoding.UTF8.GetString(buf, 0, buf_len).ToString();
+                    int channel = int.Parse(str.Split(new char[] { '=' })[0]);
+                    byte value = byte.Parse(str.Split(new char[] { '=' })[1]);
+                    arduino_dmx.setDmxValue(channel, value);
+                }
+
+            }
+            */
+
+            for (int i = 0; i < (num_leds * num_channels); i += num_channels) { arduino_dmx.setDmxValue(i, 200); }
+
+            while (true)
+            {
+                char key = Console.ReadKey().KeyChar;
+                if (key == 'u') { for (int i = 0; i < (num_leds * num_channels); i += num_channels) { arduino_dmx.setDmxValue(1 + i, 255); } }
+                if (key == 'j') { for (int i = 0; i < (num_leds * num_channels); i += num_channels) { arduino_dmx.setDmxValue(1 + i, 200); } }
+                if (key == 'n') { for (int i = 0; i < (num_leds * num_channels); i += num_channels) { arduino_dmx.setDmxValue(1 + i, 100); } }
+                if (key == 'k') { for (int i = 0; i < (num_leds * num_channels); i += num_channels) { arduino_dmx.setDmxValue(1 + i, 0); } }
+                if (key == 'r') { for (int i = 0; i < (num_leds * num_channels); i += num_channels) { arduino_dmx.setDmxValue(3 + i, 170); } }
+                if (key == 'f') { for (int i = 0; i < (num_leds * num_channels); i += num_channels) { arduino_dmx.setDmxValue(3 + i, 80); } }
+                if (key == 'v') { for (int i = 0; i < (num_leds * num_channels); i += num_channels) { arduino_dmx.setDmxValue(3 + i, 30); } }
+                if (key == 'd') { for (int i = 0; i < (num_leds * num_channels); i += num_channels) { arduino_dmx.setDmxValue(3 + i, 0); } }
+            }
+
+            arduino_dmx.stop();
+        }
+    }
+}
+
+\end{lstlisting}
