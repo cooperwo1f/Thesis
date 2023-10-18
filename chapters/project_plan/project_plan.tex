@@ -3,28 +3,24 @@
 For this project to be successful, it is necessary to fulfill various requirements.
 The requirements for this project are:
 
-% TODO: THIS LIST SUCKS NEED TO DO IT BETTER
 \begin{enumerate}
-    \item The system must be composed of inexpensive parts
+    \item The system must implement lighting control
     \begin{enumerate}
-        \item Sensors must fall within the allocated budget
-        \item PCBs must use off the shelf, easily sourced components
-        \item Components must be easily replaceable for minimal cost if something were to fail
+        \item The protocol for lighting control should be available on at least 80\% of performance based lighting fixtures
+        \item The lighting control implementation must be compliant to the protocol
     \end{enumerate}
-    \item The system output must operate remotely to the acquired sensor data at a range of at least 30m
+    \item The system output must operate remotely to the acquired sensor data at a range of at least 30 m
     \begin{enumerate}
-        \item The acquisition of sensor data must be completely detached from the system output
+        \item The acquisition of sensor data must be detached from the system output
         to allow for more complicated off-body setups
         \item The remote system must be compliant with ISO/IEC 15149-1:2014 or equivalent
         \item The wireless system must have a Packet Error Rate (PER) of no more than 1\%
         \item The wireless system must still be functional in a noisy environment
     \end{enumerate}
-    \item The system must output MIDI messages
+    \item The system must generate rhytmic music from the acquired biosignals
     \begin{enumerate}
-        \item The MIDI output port must be IEC 63035:2017 compliant
-        \item The system must also provide MIDI over USB for greater compatibility with newer devices
+        \item The musical signals need to be correlated to a consistent beat
     \end{enumerate}
-    \item The system must incorporate lighting control
 \end{enumerate}
 
 \subsection{Assumptions and Constraints}
