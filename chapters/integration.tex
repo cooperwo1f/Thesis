@@ -6,20 +6,20 @@ This PC communicates wirelessly with the on-body device,
 receiving sensor data from the various biosignals that the device is measuring.
 The PC then must process the data and coordinate the music and lighting generation.
 
+% TODO: WOULD BE GOOD TO HAVE A DECISION MATRIX HERE
 MATLAB was used as the off-body PC language for processing because of ease of use, versatility,
 and previous usage on this project.
-\textbf{MATLAB DECISION MATRIX}
 
-\subsection{Non-Integrated Setup}
+\subsection{Standalone Setup}
 Since MATLAB functions operate on arrays and matrices,
 the desired behaviour of our program is to store a length of data and process it all together,
 rather than try to process each sample individually as it arrives.
 To keep the system responsive, the buffer is kept at a fixed length,
-so that over time the processing does not incrementally take longer due to the increase in data length.
+so that over time the processing does not incrementally take longer due to the increase in data to process.
 To achieve this, the number of samples added to the front of the buffer need to be removed from the rear of the buffer each time a new sample is received.
 An `offline' version of this program can be made without the need for full system integration using previously saved sampled data.
 Since this data is the same as what we will be eventually expecting to see,
-we can create a circular loop of the data and have a test system that operates almost exactly as the eventual integrated program will.
+The processing code that we write for this test data will also function similarly on the real data.
 
 For testing, an electrocardiogram (ECG) dataset from a previous iteration of the project was used.
 The code for bringing that into the workspace is shown in~\autoref{code:matlab_dataset_test_setup}.
@@ -68,22 +68,35 @@ end
 
 The first thing that is done is the constants and variables definitions.
 In this context, packet refers to the small subset of the ECG signal that is going to be added to the larger fixed length array.
-That array is labelled `data' in this example.
+That fixed length array is labelled `data' in this example.
 
-The packet index is the index into the ECG dataset where data will be sampled from.
+The packet index is the data position from the ECG dataset where data will be sampled from.
 Packet length determines how many samples at a time are shifted in and out of the data array,
 this is to simulate the device transmitting multiple samples at a time.
 
-When the packet index reaches the end of the ECG dataset, it is reset back to the beginning.
-There is no consideration for the continuity of the signal, it is a known issue and can be easily detected and ignored.
+When the packet index reaches the end of the ECG dataset, the index resets back to the beginning.
+This is so the test program can run continously, regardless of how big the test dataset actually is.
+When the index resets, there is a break in continuity of the signal. However, this is a known issue and can be easily detected and ignored.
 
-The packet is defined as the snippet that the packet index is pointing to in the dataset with the length defined by packet length.
+% TODO: FIGURE SHOWING DATA ENTERING AND EXITING FIXED LENGTH ARRAY
 The fixed data array can then be updated by first shifting the current data to the left, disposing of packet length worth of data at the beginning.
-Then, the same amount of data can be appended to the end of the array. \textbf{FIGURE HERE SHOWING DATA ENTERING ON THE RIGHT AND EXITING ON THE LEFT}
+Then, the same amount of data, from the packet, can be appended to the end of the array.
 Plots of this data are shown in~\autoref{fig:matlab_packet_test1} and\autoref{fig:matlab_packet_test2}.
 
 With this setup, the off-body PC is ready to process an incoming signal as a fixed sized array of data.
-An example of some potential signal analaysis is shown in~\autoref{code:matlab_analaysis}.
+An example of potential signal analaysis is shown in~\autoref{code:matlab_analaysis}.
+
+\begin{figure}[!ht]
+  \caption{Fixed length data buffer visualization half filled}\label{fig:matlab_packet_test1}
+  \centering
+  \includegraphics[width=1\columnwidth]{chapters/development/MATLAB/HALF_FILLED}
+\end{figure}
+
+\begin{figure}[!ht]
+  \caption{Fixed length data buffer visualization fully filled}\label{fig:matlab_packet_test2}
+  \centering
+  \includegraphics[width=1\columnwidth]{chapters/development/MATLAB/FULL_FILLED}
+\end{figure}
 
 \begin{lstlisting}[language=MATLAB,caption={MATLAB signal analaysis example}\label{code:matlab_analaysis}]
     %%% server side signal analaysis
@@ -99,11 +112,11 @@ An example of some potential signal analaysis is shown in~\autoref{code:matlab_a
     BPM = round(360 / mean(peak_gap) * 60, 0);
 \end{lstlisting}
 
+% TODO: WOULD BE GOOD TO HAVE SOME RESULT FROM THIS IN SOME CAPACITY
 This code calcuates the BPM of the signal by measuring the gaps between the peaks of the ECG QRS signals.
 It can be verified by comparing the measured BPM value with the given value from the dataset.
-\textbf{FIGURE HERE SHOWING MATCHING BPMS}
-When the system is integrated, as long as the data length matches and the sensor data is clean \textbf{?},
-this same code will produce the same results.
+When the system is integrated, as long as the data length matches and the sensor data is accurate,
+this same code will produce similar results.
 
 
 \section{System Integration}
@@ -112,7 +125,8 @@ With all the block of the system functional,
 the first step of system integration is to establish communication between the off-body PC and on-body device.
 
 On the on-body device, the ESP32 acts as the wireless bridge.
-As this device is connected to WiFi for OTA updates, it was logically concluded that TCP/IP should be used as the communication \textbf{DECISION MATRIX}.
+As this device requires a connection to WiFi for OTA updates, the wireless protocol that was choosen to be implemented was TCP/IP.
+This is because the device already has a TCP/IP requirement and the only other choice for wireless communication was bluetooth, which does not have the range or speed that TCP/IP has.
 The code for connecting the ESP32 to the off-body PC is shown in~\autoref{code:esp_tcpip_connect} and the corresponding MATLAB code is shown in~\autoref{code:matlab_tcpip}.
 
 \begin{lstlisting}[language=C++,caption={ESP32 code for connecting to TCP/IP client}\label{code:esp_tcpip_connect}]
@@ -141,19 +155,23 @@ loop() {
     client.write('E');
     client.write('S');
     client.write('T');
-    client.write('\n');
   }
 
   delay(500);
 }
 \end{lstlisting}
 
-\lstinputlisting[language=MATLAB,caption={MATLAB TCPIP receive code}\label{code:matlab_tcpip}]{chapters/development/MATLAB/TCPIP_BASIC.m}
+\lstinputlisting[language=MATLAB,caption={MATLAB TCPIP receive code}\label{code:matlab_tcpip}]{chapters/development/MATLAB/TCPIP_FIXED.m}
 
 In order to get these devices to communicate, inbound and outbound rules need to be defined in the off-body PC firewall.
 This is to allow connections on the specified port, since most PC ports are typically closed for security reasons.
-\textbf{FIGURE SHOWING FIREWALL SETTING}
-\textbf{THIS IS ALSO NECESARY FOR THE ESP32 OTA PROGRAMMING}
+The port settings can be seen in~\autoref{fig:firewall}.
+
+\begin{figure}[!ht]
+  \caption{TCP/IP firewall port settings}\label{fig:firewall}
+  \centering
+  \includegraphics[width=1\columnwidth/2]{chapters/development/FIREWALL}
+\end{figure}
 
 With data being sent between the ESP32 and the off-body PC, the next device to connect is the PIC32 to the off-body PC.
 Since the SPI communication between the PIC and the ESP has already been established,
@@ -189,28 +207,18 @@ void run() {
 }
 \end{lstlisting}
 
-\textbf{MAY BE WORTH MENTIONING SOMEWHERE THAT THE ESP32 DID NOT START THIS SIMPLE}
-\textbf{IT BEGAN MUCH MORE COMPLICATED AND GAINED SIMPLICITY AS DEVELOPMENT CONTINUED}
-
-
 \subsection{Base64}
-\textbf{MAYBE CHANGE PREVIOUS TESTING CODE TO BYTE LENGTH BASED RECEIVING TO ILLUSTRATE POINT}
-\textbf{EVEN IF YOU CHANGE IT TO THE SINE EXAMPLE LIKE WHAT YOU ACTUALLY DID}
-
 Sending individual bytes between devices is now possible.
 Currently, this only works as long as the value fits into a predetermined number of bytes.
 Additionally, once the system is running with non-known values, there is no easy way to keep the data synchronized.
 For instance, if a byte of data was lost, the received data would be in the incorrect place
 and there would be no way of knowing.
 This could be solved by sending a known byte sequence at the beginning of transmission.
-However, there would be differentiation between that byte sequence and any arbitrary data that may be being sent.
+However, there would be no differentiation between that byte sequence and any arbitrary data that may be being sent.
 Another approach is to limit the character set so that specific byte values can correspond to `special' characters.
 For example, the decimal value of 10, which corresponds to the newline character, could be used to mark the end of transmission.
 That way, even if the transmitter and receiver become out of sync, the system has a way of recovering.
 There are a number of character sets that have already been developed.
-\textbf{DECISION MATRIX FOR DIFFERENT CHARACTER SETS}
-\textbf{MAYBE MORE RESEARCH ON OTHER ONES/AT LEAST ON BASE64}
-Base64 can be decoded in MATLAB using the
 
 \begin{lstlisting}[language=C]
   void ESP32_SPI_write_array(uint8_t *array, size_t len) {
