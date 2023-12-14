@@ -31,7 +31,7 @@ Additionally, Arduino serial communication was integrated to allow the prototypi
 \section{Results}
 The off-the-shelf controller and custom software allows lighting fixtures to be controlled from other high-level languages in real-time,
 shown in~\autoref{image:prof_fixture}.
-The implementation of this also allows it to be running on a seperate PC connected to the network,
+The implementation of this also allows it to be running on a separate PC connected to the network,
 if lighting control needed to be done away from the main processing, or to free up resources on the main processing PC.
 
 The off-the-shelf controller has a delay of 25 ms.
@@ -68,7 +68,8 @@ The only change necessarily is to update the DMX addresses to match the correspo
 The biggest challenge with the implementation of the lighting controller was the prototyping fixture.
 DMX is a protocol that sends `frames' of 512 bytes continuously.
 Each byte corresponds to a DMX address, the address number is the byte's offset in the 512 byte array.
-So, the 12th byte will correspond to the 12th address and the value of that byte will be what is applied to the fixture at that address.
+So, the 12\textsuperscript{th} byte will correspond to the 12\textsuperscript{th} address
+and the value of that byte will be what is applied to the fixture at that address.
 Frames are sent out multiple times per second, regardless of if any values in the 512 byte array have changed,
 so that the fixtures can determine when the controller is unplugged.
 For the prototyping fixture receiving DMX over serial, there is no simple way to know where the start of the frame is.
@@ -91,7 +92,7 @@ As this is for a prototyping fixture, it is more important to have it be functio
 The base64 encoded string represents the entire DMX frame.
 To reduce unnecessary processing, the frame is reduced to only 32 addresses, which is the number of addresses used by the fixture.
 Before the frame is base64 encoded, each address concatenated into a single string that represents the entire DMX frame.
-To make the addresses easier to seperate, as well as to ensure both the base64 string and the decoded string are a fixed length,
+To make the addresses easier to separate, as well as to ensure both the base64 string and the decoded string are a fixed length,
 the addresses are sent as a fixed three-digit decimal number.
 These three-digit numbers are concatenated into a string and base64 encoded before being sent to the Arduino.
 This makes debugging easier, as the numbers can be directly read as their decimal representation before they are encoded and once they are decoded.
