@@ -7,23 +7,7 @@ as other sections of the project required hardware that was currently being deve
 The lighting controller has a simple function in this system; it maps processed biosignals to lighting position and intensity.
 Therefore, it should be able to communicate with the off-body PC and pass various commands through to whatever lights are connect to it.
 
-Different protocols for controlling various lighting fixtures exist.
-To determine which should be used for this project, a decision matrix, shown in~\autoref{tab:decision} and~\autoref{tab:decision_cont} was used.
-For this project, DMX512 (DMX) was determined to be the most appropriate.
-
-\begin{table}[!ht]
-    \caption{Lighting protocol decision matrix}\label{tab:decision}
-    \centering
-    \input{chapters/project_plan/tables/lighting.tex}
-\end{table}
-
-\begin{table}[!ht]
-    \caption{Lighting protocol decision matrix (continued)}\label{tab:decision_cont}
-    \centering
-    \input{chapters/project_plan/tables/lighting_continued.tex}
-\end{table}
-
-% TODO: ADD PURCHASED VS DIY CONTROLLER DECISION MATRIX
+During the planning stage of the project, DMX was determined to be the most appropriate protocol to use for this purpose.
 To control DMX fixtures, there are two options, using an off-the-shelf controller or creating a custom controller.
 As shown in this decision matrix, the more viable option was to purchase an off-the-shelf controller.
 
