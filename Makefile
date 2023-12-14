@@ -19,22 +19,33 @@ all: $(TEX_FILES:%.tex=$(BUILD_DIR)/%.pdf) $(BIB_FILES)
 
 # Rule for building LaTeX files
 $(BUILD_DIR)/%.pdf: %.tex $(BIB_FILES) $(TEMPLATE_DIR)/* $(SUB_DIRS)/* | $(BUILD_DIR)
-	cp -f -r -t $(BUILD_DIR)/ $(TEX_FILES) $(BIB_FILES) $(SUB_DIRS) $(TEMPLATE_DIR)/*
-	cd $(BUILD_DIR) && rubber --pdf $(<F)
+	@echo "Moving build files"
+	@cp -f -r -t $(BUILD_DIR)/ $(TEX_FILES) $(BIB_FILES) $(SUB_DIRS) $(TEMPLATE_DIR)/*
+	@echo ""
+	@echo "Building"
+	@cd $(BUILD_DIR) && rubber --pdf $(<F)
 
 # Rule to create the build directory
 $(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
+	@echo "Making build directory"
+	@mkdir -p $(BUILD_DIR)
 
 # Insert declaration page
 .PHONY: insert-declaration
 insert-declaration: all
-	pdftk A=$(BUILD_DIR)/thesis.pdf B=$(BUILD_DIR)/declaration-test.pdf cat A1 B1 A3-end output thesis-SIGNED.pdf
+	@echo ""
+	@echo "Inserting declaration"
+	@pdftk A=$(BUILD_DIR)/thesis.pdf B=$(BUILD_DIR)/declaration-test.pdf cat A1 B1 A3-end output $(BUILD_DIR)/thesis-SIGNED.pdf
+	@echo "Extracting metadata"
+	@pdftk $(BUILD_DIR)/thesis.pdf dump_data output $(BUILD_DIR)/title.txt
+	@echo "Inserting metadata"
+	@pdftk $(BUILD_DIR)/thesis-SIGNED.pdf update_info $(BUILD_DIR)/title.txt output thesis.pdf
 
 # Clean the build directory
 .PHONY: clean
 clean:
-	rm -rf $(BUILD_DIR)
+	@echo "Removing build directory"
+	@rm -rf $(BUILD_DIR)
 
 # Clean and rebuild
 .PHONY: rebuild

@@ -374,9 +374,6 @@ KOMA-script documentation for details.}]{fancyhdr}
 			\bigskip
 		\end{center}
 	}
-	{
-		\vfill\null
-	}
 }
 
 \DeclareDocumentEnvironment{extraAbstract}{ O{\null\vfill} }{
