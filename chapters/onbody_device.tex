@@ -20,9 +20,17 @@ The PIC32 was programmed with a basic test program.
 Then, PLL~\cite{Maji:2016} clock configuration was performed and validated.
 
 SPI communication between the PIC32 and the ESP32 was established.
-Further communication between the PIC32 and the off-body PC through the ESP32 was verified.
-The ADS1294R communication line was probed, and SPI communication was briefly established with the PIC32.
+This was determined by connecting both devices to their hardware debuggers and printing characters to be sent (from the PIC32),
+and that were received (from the ESP32) and verifying that they matched.
+Further communication between the PIC32 and the off-body PC through the ESP32 was verified using a similar method.
+Then, the entire communication chain was tested by setting a counter on the PIC32 to zero,
+transmitting the counter to the off-body PC using the ESP32, and incrementing the counter each time a transmission occurred.
+A similar counter was set on the off-body PC, which then received the transmissions, verified both counters matched, and incremented its counter.
+The time between receiving was measured on the off-body PC, and the average time, multiplied by eight, was calculated as the average bit time.
+If the transmitted counter and the local counter did not match, the local counter was set to the next valid number that was received,
+the number of incorrectly received bytes were kept track of, which determined the byte error.
 
+The ADS1294R communication line was probed, and SPI communication was briefly established with the PIC32.
 Issues surrounding the ADS1294R prompted an investigation into the power distribution of the on-body PCB.
 Additionally, further issues had arose surrounding power into the ESP32.
 The PCB was tested in the following states in order to measure changes in how the ESP32 programmed.
@@ -54,12 +62,18 @@ this can be seen in~\autoref{image:pulse_delay}.
   \includegraphics[width=1\columnwidth]{chapters/development/results/DELAY}
 \end{figure}
 
-The PIC32 and ESP32 are able to communicate with 0 bit rate errors over a half hour runtime.
-However, the communication has a number of required delays that should be optimized in the future.
-This limits the overall system communication speed substantially.
+The PIC32 and ESP32 are able to communicate with the off-body PC at a speed of 1.45 kbits/s with 0 byte errors over a half hour run-time.
 
-Communication between the ADS1294R and the PIC32 worked, and test signals from the ADS1294R were measured.
+Communication between the ADS1294R and the PIC32 worked, seen in~\autoref{image:ads_pic_spi_comms}, and test signals from the ADS1294R were measured.
 This communication did not last long enough to substantially test, as the PCB began to have power issues.
+
+\begin{figure}[!ht]
+  \caption{Oscilloscope measurement of ADS1294R and PIC32 SPI communication, with the ADS1294R in continuously transmission mode,
+    the top trace showing the ADS1294R response, the middle trace showing the PIC32 clock,
+    and the bottom trace showing the chip select pin assertion}\label{image:ads_pic_spi_comms}
+  \centering
+  \includegraphics[width=1\columnwidth]{chapters/development/results/ADS_SPI_COMMS_WORKING}
+\end{figure}
 
 The voltage at the input of the ESP32 was 0.7 V less than what was measured at the input power supply (3.3 V).
 The input power supply was not reaching it's current limit.
@@ -95,7 +109,7 @@ Which is a lot less likely to cause a substantial voltage drop and trip the brow
 
 The PIC32 programming was challenging because the device was not correctly labelled on the schematics.
 Due to chip shortages during manufacturing, a different model of PIC32 had to be chosen, however this was not obviously reflected in the schematics.
-This meant that the intial implemention of the PIC32 revolved around attempting to connect to a device with a different device ID.
+This meant that the initial implementation of the PIC32 revolved around attempting to connect to a device with a different device ID.
 
 Communication between the PIC32 and the ESP32 was done with SPI.
 SPI is typically used between a controller and a peripheral.
@@ -103,14 +117,14 @@ In this case, the PIC32 would be the controller, and the ESP32 would be the wire
 However, since both devices are microcontrollers, both devices are configured to be the controller.
 In order to make the ESP32 the controller,
 it would need to be continuously sending dummy data in order to generate the clock pulses for the PIC32 to send data,
-which is unoptimal for this use case as the PIC32 is only ever sending data and the ESP32 is only ever receiving it.
+which is non-optimal for this use case as the PIC32 is only ever sending data and the ESP32 is only ever receiving it.
 So, it makes more sense to make the PIC32 the controller.
 
 The library that was used to make the ESP32 act as an SPI peripheral is the ESP32DMASPI library~\cite{ESP32DMASPI}.
 This library is based on the official driver from the manufacture~\cite{SPI}.
 SPI was implemented using task based DMA receiving.
 The PIC32 is configured as a 32-bit master operating in SPI mode 3~\cite{Barry:2012}.
-The baudrate generator value has been calculated using the equation \(BRG = (F_{PB} / 2 \times F_{SCK}) - 1\),
+The baud-rate generator value has been calculated using the equation \(BRG = (F_{PB} / 2 \times F_{SCK}) - 1\),
 and a SPI clock speed of 31.3 kHz has been generated (using a BRG value of 50).
 This value has been intentionally set low so that the transmission speeds are well below what both devices are capable of for testing.
 
@@ -151,13 +165,24 @@ Still, to aid in troubleshooting, debugging wires were attached to the board, sh
 A four channel oscilloscope could then be used to analyze the SPI communication.
 What was eventually discovered was that the chip select pin was not being asserted for long enough.
 The SPI communication between the two devices is shown in~\autoref{fig:ads_spi}.
+When compared to the working communication, shown in~\autoref{image:ads_pic_spi_comms},
+the difference is that the chip select pin is not being asserted for long enough.
 Since the chip select pin was being controlled by the PIC SPI module,
 it was being automatically driven low during transmission and then high again after transmission completed.
 For multi-byte commands the chip select line needed to stay asserted until all of the bytes had been transferred and received.
 That is why it would only work for single-byte commands, because once the byte had been send the communication could be reset.
 
+What is seen in~\autoref{fig:ads_spi} is the ADS1294R ignoring the command given by the PIC32
+and instead trying to provide the readings for its various ADCs,
+as continuous data transmission mode is the default mode the device enters on startup.
+Once the chip select pin is unasserted, the continuous data transmission is reset,
+and so each time a new command is given from the PIC32,
+the response is always the same byte, as it is the beginning of the continuous transmission.
+
 \begin{figure}[!ht]
-  \caption{SPI communication between PIC32 and ADS1294R}\label{fig:ads_spi}
+  \caption{Non-functional SPI communication between PIC32 and ADS1294R,
+    the top trace is the PIC32 command, the middle trace is the ADS1294R response,
+    the bottom two traces are the chip select and clock}\label{fig:ads_spi}
   \centering
   \includegraphics[width=1\columnwidth]{chapters/development/results/ADS_SPI_COMMS}
 \end{figure}
@@ -167,7 +192,7 @@ There are a number of possibilities for why this would happen.
 
 The first possibility that was invested was the addition of the attached debugging wires, as they may have created a short circuit.
 However, none of the adjacent pins of any of the debugging wires were power related,
-nor were they electrically connected as measured using the continuity test function of a multimeter.
+nor were they electrically connected as measured using the continuity test function of a multi-meter.
 
 Another possibility is that the voltage regulator and/or power source are not rated to high enough current.
 To verify this was not the cause, the voltage regulator was bypassed and the board was directly driven by the source power supply,
