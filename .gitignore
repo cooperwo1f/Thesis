@@ -4,6 +4,7 @@
 *.log
 tmp/
 build/
+pgrep
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
