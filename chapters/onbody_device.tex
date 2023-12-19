@@ -122,19 +122,7 @@ Specifically, the way the chip select line does not reset between SPI transmissi
 This could be solved by manually asserting the chip select line instead of allowing the peripheral to control it.
 However, due to time restrictions it was decided that features should be implemented in a basic functional form,
 and performance could be optimized once the system was fully developed,
-and thus the driver was implemented using significantly slower delay.\\\\
-
-\textbf{---NEED TO FIND SOMEWHERE TO PUT THIS---}\\
-For example, the only way to send data was to write a single byte at a time, despite the fact that the SPI module is in 32-bit (4 byte) mode.
-What is interesting about this is that the single byte must be located at the front of the 4 byte word.
-This implies that the ESP32 was not able to receive 32-bits, and instead was just receiving the first 8-bit word.
-However, if the SPI peripheral of the PIC32 was put into 8-bit mode (and all respective code changed to fit that mode),
-the ESP32 would receive nothing.
-So, the ESP32 required the PIC32 to send 32 SPI clock pulses but would only receive the first 8 data bits.
-This same behavior was present when using both a task based approach or a polling approach and when DMA was or was not in use.
-It is a substantial issue because it adds a 75\% overhead to the communication system.
-This, and the required delay in the low-level driver, are the primary candidates for future optimizations.\\
-\textbf{---NEED TO FIND SOMEWHERE TO PUT THIS---}\\\\
+and thus the driver was implemented using significantly slower delay.
 
 The ADS1294R also communicates using SPI.
 A recommended startup sequence for the device is shown in~\autoref{fig:ads_startup}.
@@ -166,7 +154,7 @@ The SPI communication between the two devices is shown in~\autoref{fig:ads_spi}.
 Since the chip select pin was being controlled by the PIC SPI module,
 it was being automatically driven low during transmission and then high again after transmission completed.
 For multi-byte commands the chip select line needed to stay asserted until all of the bytes had been transferred and received.
-That is why it would only work for single-byte commands, because once the byte had been send the communication could be reset.\\\\
+That is why it would only work for single-byte commands, because once the byte had been send the communication could be reset.
 
 \begin{figure}[!ht]
   \caption{SPI communication between PIC32 and ADS1294R}\label{fig:ads_spi}
@@ -174,5 +162,37 @@ That is why it would only work for single-byte commands, because once the byte h
   \includegraphics[width=1\columnwidth]{chapters/development/results/ADS_SPI_COMMS}
 \end{figure}
 
-\textbf{---NEED DISCUSSION ITEM FOR THIS---}\\
-The voltage at the input of the ESP32 was 0.7 V less than what was measured at the input power supply (3.3 V).
+The board power distribution issues arose once the SPI communication between the PIC32 and the ADS1294R had been established.
+There are a number of possibilities for why this would happen.
+
+The first possibility that was invested was the addition of the attached debugging wires, as they may have created a short circuit.
+However, none of the adjacent pins of any of the debugging wires were power related,
+nor were they electrically connected as measured using the continuity test function of a multimeter.
+
+Another possibility is that the voltage regulator and/or power source are not rated to high enough current.
+To verify this was not the cause, the voltage regulator was bypassed and the board was directly driven by the source power supply,
+the feasibility of this was determined by referencing the board schematics.
+The current limit of the source supply was also increased so that it remained in constant voltage mode,
+and was monitored to determine that the current limit was never reached.
+
+The final possibility that was investigated was the increase in current draw from all of the integrated circuits now being functional.
+As the resistance of the power plane of the board is constant,
+the equation \[V = IR\] tells us that an increase in current will cause a proportional increase in voltage drop across the power plane.
+If the resistance of the power plane is high enough, and the current increase great enough,
+it is possible that the voltage across the power plane could trigger the brownout detection, or other undefined behaviour, for some of the devices.
+If this caused a number of devices to reset at the same time, it may cause a peak in current consumption at the point were they all startup again.
+This would cause a greater voltage drop across the power plane, thus repeating the cycle.
+One attempt to circumvent this was to insert power into a number of different points on the board
+closer to where the supply pins of the integrated circuit are.
+This had some brief success, but ultimately did not provide a consistent method for keeping the device powered correctly,
+as the devices would intermittently reset due to power issues.
+It appeared that the only way to keep the board powered consistently was to keep the debugging tools for each device connected permanently,
+and to power each device through its corresponding debugger.
+
+This implies that the issues are more related to the source supply rather than the power plane.
+However, each individual debugger is not able to power the board without it having the same issue.
+Additionally, several debuggers in parallel still do not solve the issue.
+It is only the addition of the debugging tools and the source supply that solve the issue.
+With the debugging tools disconnected, the source supply current reading increases.
+So, the additions do not provide power that the source supply is unable to supply itself.
+Unfortunately, due to time constraints, no further investigation could be conducted.
