@@ -8,13 +8,13 @@ This is so that with the edition of each new sub-section, the system response to
 
 First, the lighting controller was implemented, as shown in the Lighting Controller chapter.
 Then, software for the off-body PC was written that could communicate with the lighting controller,
-and control the prototyping fixture based on a prerecorded dataset.
-The dataset was that of an electrocardiogram sampled at 360 Hz.
+and control the prototyping fixture based on a prerecorded data-set.
+The data-set was that of an electrocardiogram sampled at 360 Hz.
 The lights were controlled by pulsing their intensity at the peaks of the electrocardiogram.
-Then, the software was modified so that the data being processed could be received as a continuous stream, instead of a fixed dataset.
+Then, the software was modified so that the data being processed could be received as a continuous stream, instead of a fixed data-set.
 
 Communication between the on-body device and the off-body PC has already been documented in the On-Body Device chapter.
-This communication was expanded upon by receiving the data into the same continuous stream that had already been established with the dataset,
+This communication was expanded upon by receiving the data into the same continuous stream that had already been established with the data-set,
 thus allowing the on-body device to control the prototyping fixture through peaks in the transmitted data.
 
 The on-body device needs to collect different types of data with varying sample and transmission rates.
@@ -27,11 +27,11 @@ Additionally, packet headers were created to specify the different kinds of data
 \section{Results}
 The off-body PC has a fixed length first-in-first-out buffer that can be filled with either testing data or streamed data from the on-body device.
 The received data can control the prototyping fixture, with various methods of control through data processing.
-Beat detection was implemented on the testing dataset,
+Beat detection was implemented on the testing data-set,
 allowing the prototyping fixture to increase intensity at each peak of the input data.
 
 \begin{figure}[!ht]
-  \caption{Fixed length FIFO data buffer with testing dataset}\label{fig:matlab_packet_test2}
+  \caption{Fixed length FIFO data buffer with testing data-set}\label{fig:matlab_packet_test2}
   \centering
   \includegraphics[width=1\columnwidth]{chapters/development/MATLAB/FULL_FILLED}
 \end{figure}
@@ -64,9 +64,9 @@ so that over time the processing does not incrementally take longer due to the i
 For testing, an electrocardiogram (ECG) data-set from a previous iteration of the project was used.
 The data-set was imported into the workspace in a way that mimicked wireless reception.
 Specifically, the data was packetized and shifted into the predefined fixed length buffer.
-Then, the program loops, continually sending data as new packets, and repeates once it reaches the end of the data-set.
+Then, the program loops, continually sending data as new packets, and repeats once it reaches the end of the data-set.
 This is so that processing methods can be developed experimentally
-with the assurance that the behaviour will remain consistent once the system transistions away from the testing data-set.
+with the assurance that the behaviour will remain consistent once the system transitions away from the testing data-set.
 
 The first processing method that was developed was beats per minute (BPM) prediction using the ECG QRS signal.
 This method calculates the BPM of the signal by measuring the gaps between the peaks of the QRS signals.
@@ -94,7 +94,7 @@ the transmission speed will need to increase significantly if this device is eve
 As it is likely that a performer would wish to have more than just their heart rate be used to augment the performance.
 
 The final part of the project is the testing and validation.
-Unfortunately due to power supply issues, a proper testing and validation suite could not be conduceted on the device.
+Unfortunately due to power supply issues, a proper testing and validation suite could not be conducted on the device.
 The power issues are related to what was seen earlier with the ESP32.
 As more devices came online, the current draw across on-body device's power plane increased, which subsequently increased the voltage drop.
 Eventually, this voltage drop became too large and the devices started to lose power.
